@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parknah – Private Stellplätze nahe deinem Flughafen</title>
 <link rel="icon" type="image/png" href="favicon.png">
+<link rel="shortcut icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -60,7 +61,7 @@
     background:var(--lime);
     margin:0 6px;
   }
-  .logo-img{height:32px;width:auto;display:block;}
+  .logo-img{height:52px;width:auto;display:block;}
   .brand svg{display:block;}
   .nav-link{
     font-size:15px;
@@ -154,21 +155,15 @@
     .hero h1{font-size:30px;}
   }
 
-  /* Waitlist */
-  .waitlist{padding:8px 0 44px;}
-  .waitlist-card{
-    background:var(--petrol);
-    color:#fff;
-    border-radius:16px;
-    padding:36px;
-    max-width:640px;
-    margin:0 auto;
-  }
-  .waitlist-card h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:24px;margin:0;color:#fff;}
-  .waitlist-card .intro{color:#C9DAD5;font-size:15px;margin:10px 0 22px;}
-  .waitlist-card .field label{color:#C9DAD5;}
-  .waitlist-card .form-row{margin-bottom:0;}
-  @media (max-width:600px){.waitlist-card{padding:24px;}}
+  /* So funktioniert's */
+  .howworks{padding:12px 0 8px;}
+  .section-title{font-family:'Montserrat', sans-serif;font-weight:800;font-size:26px;color:var(--petrol);text-align:center;margin:0 0 32px;}
+  .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;}
+  .how-item{text-align:center;}
+  .how-item svg{width:88px;height:88px;margin-bottom:14px;}
+  .how-item h3{font-family:'Montserrat', sans-serif;font-weight:800;font-size:16px;color:var(--petrol);margin:0 0 6px;}
+  .how-item p{font-size:14px;color:var(--ink-soft);margin:0;max-width:220px;margin:0 auto;}
+  @media (max-width:720px){.how-grid{grid-template-columns:1fr;gap:32px;}}
 
   /* Results */
   .results{padding:44px 0 68px;}
@@ -270,8 +265,10 @@
   .card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(10,61,58,0.10);}
   .btn, .btn-outline{transition:transform 0.15s ease, background 0.2s ease;}
   .btn:active, .btn-outline:active{transform:scale(0.97);}
-  .offer-illustration{width:100%;max-width:320px;margin-top:28px;}
-  .hero-illustration{width:100%;max-width:420px;margin:0 auto;display:block;}
+  .hero-photo{width:100%;max-width:480px;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.14);}
+  .offer-photo{width:100%;max-width:320px;border-radius:14px;margin-top:28px;display:block;box-shadow:0 16px 32px rgba(10,61,58,0.12);}
+  .photo-banner{padding:8px 0;}
+  .banner-photo{width:100%;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.12);}
   .empty-illustration{width:120px;margin:0 auto 14px;display:block;}
   @keyframes logoIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 </style>
@@ -293,19 +290,7 @@
     <span class="tagline">Parknah – Dein Platz. Einfach da.</span>
     <p class="lead">Parknah verbindet Reisende mit privaten Stellplätzen nahe deutschen Flughäfen. Kein Parkhaus-Aufpreis, keine endlosen Nachrichten – nur echte Nachbarn mit einer freien Einfahrt.</p>
 
-    <svg class="hero-illustration" viewBox="0 0 420 200" aria-hidden="true">
-      <ellipse cx="210" cy="175" rx="180" ry="10" fill="#DEDCD2"/>
-      <rect x="60" y="90" width="300" height="70" rx="16" fill="#0A3D3A"/>
-      <rect x="90" y="55" width="160" height="55" rx="14" fill="#0A3D3A"/>
-      <rect x="105" y="65" width="55" height="30" rx="6" fill="#EFF5F3" opacity="0.9"/>
-      <rect x="170" y="65" width="55" height="30" rx="6" fill="#EFF5F3" opacity="0.9"/>
-      <circle cx="120" cy="165" r="22" fill="#10201D"/>
-      <circle cx="120" cy="165" r="9" fill="#A6D608"/>
-      <circle cx="300" cy="165" r="22" fill="#10201D"/>
-      <circle cx="300" cy="165" r="9" fill="#A6D608"/>
-      <rect x="340" y="30" width="60" height="60" rx="10" fill="none" stroke="#A6D608" stroke-width="4"/>
-      <text x="352" y="70" font-family="Montserrat, sans-serif" font-weight="800" font-size="34" fill="#A6D608">P</text>
-    </svg>
+    <img src="photo-1.jpg" alt="Private Parkplatz-Tiefgarage mit Petrol-Akzentwand" class="hero-photo">
 
     <div class="ticket">
       <div class="ticket-field">
@@ -329,29 +314,49 @@
   </div>
 </section>
 
-<section class="waitlist fade-up" id="warteliste">
+<section class="howworks fade-up">
   <div class="wrap">
-    <div class="waitlist-card">
-      <h2>Parknah kommt.</h2>
-      <p class="intro">Wir bauen Parknah gerade auf. Trag dich jetzt ein und sei von Anfang an dabei.</p>
-      <form id="waitlistForm" onsubmit="return submitWaitlist(event)">
-        <div class="form-row">
-          <div class="field"><label for="w-name">Name</label><input id="w-name" required placeholder="Dein Name"></div>
-          <div class="field"><label for="w-email">E-Mail-Adresse</label><input id="w-email" type="email" required placeholder="du@beispiel.de"></div>
-        </div>
-        <div class="field">
-          <label for="w-interest">Ich bin dabei als ...</label>
-          <select id="w-interest" required>
-            <option value="">Bitte wählen</option>
-            <option value="suche">Ich suche Parkplätze</option>
-            <option value="anbieten">Ich möchte einen Stellplatz anbieten</option>
-            <option value="dabei">Ich möchte einfach dabei sein</option>
-          </select>
-        </div>
-        <button type="submit" class="btn lime" style="width:100%;">Ich möchte dabei sein</button>
-        <div id="waitlistMsg"></div>
-      </form>
+    <h2 class="section-title">So funktioniert Parknah</h2>
+    <div class="how-grid">
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <path d="M50 24 C36 24 28 34 28 46 C28 60 50 78 50 78 C50 78 72 60 72 46 C72 34 64 24 50 24 Z" fill="#0A3D3A"/>
+          <circle cx="50" cy="46" r="10" fill="#A6D608"/>
+        </svg>
+        <h3>Suchen</h3>
+        <p>Flughafen auswählen und passende private Stellplätze in der Nähe finden.</p>
+      </div>
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <rect x="26" y="38" width="48" height="34" rx="6" fill="#0A3D3A"/>
+          <rect x="26" y="30" width="48" height="10" rx="4" fill="#A6D608"/>
+          <circle cx="38" cy="55" r="4" fill="#fff"/>
+          <circle cx="50" cy="55" r="4" fill="#fff"/>
+          <circle cx="62" cy="55" r="4" fill="#fff"/>
+        </svg>
+        <h3>Kontakt aufnehmen</h3>
+        <p>Direkt mit der Person in Kontakt treten, die den Stellplatz anbietet.</p>
+      </div>
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <rect x="24" y="52" width="52" height="20" rx="6" fill="#0A3D3A"/>
+          <circle cx="36" cy="72" r="7" fill="#10201D"/>
+          <circle cx="64" cy="72" r="7" fill="#10201D"/>
+          <path d="M30 52 L38 34 L62 34 L70 52 Z" fill="#A6D608"/>
+        </svg>
+        <h3>Parken</h3>
+        <p>Ankommen und direkt auf dem vereinbarten Stellplatz parken – fertig.</p>
+      </div>
     </div>
+  </div>
+</section>
+
+<section class="photo-banner fade-up">
+  <div class="wrap">
+    <img src="photo-3.jpg" alt="Private Stellplätze vor Wohngebäude" class="banner-photo">
   </div>
 </section>
 
@@ -377,14 +382,7 @@
         <div class="benefit"><div class="num">2</div><p>Du entscheidest selbst über Preis und Verfügbarkeit.</p></div>
         <div class="benefit"><div class="num">3</div><p>Wir sind in der Testphase – dein Eintrag hilft uns direkt zu zeigen, wie groß die Nachfrage wirklich ist.</p></div>
       </div>
-      <svg class="offer-illustration" viewBox="0 0 320 200" aria-hidden="true">
-        <rect x="10" y="120" width="300" height="14" rx="7" fill="#12433F"/>
-        <rect x="40" y="60" width="90" height="60" rx="10" fill="#A6D608"/>
-        <rect x="150" y="40" width="110" height="80" rx="10" fill="#EFF5F3" opacity="0.85"/>
-        <circle cx="70" cy="120" r="14" fill="#12433F"/>
-        <circle cx="230" cy="120" r="14" fill="#12433F"/>
-        <path d="M150 80 L190 50 L260 50 L260 80" fill="none" stroke="#A6D608" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+      <img src="photo-2.jpg" alt="Moderne private Tiefgarage" class="offer-photo">
     </div>
 
     <div class="form-card">
@@ -604,27 +602,6 @@ function escapeHtml(str){
 function showInterest(id){
   const listing = allListings.find(l=>l.id===id);
   alert('Danke für dein Interesse! In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.');
-}
-
-async function submitWaitlist(e){
-  e.preventDefault();
-  const msgEl = document.getElementById('waitlistMsg');
-  const entry = {
-    name: document.getElementById('w-name').value.trim(),
-    email: document.getElementById('w-email').value.trim(),
-    interest: document.getElementById('w-interest').value
-  };
-
-  const { error } = await supabaseClient.from('waitlist').insert(entry);
-
-  if(!error){
-    msgEl.innerHTML = '<div class="form-msg ok">Danke! Wir melden uns, sobald es losgeht.</div>';
-    document.getElementById('waitlistForm').reset();
-  }else{
-    console.error('Warteliste-Eintrag fehlgeschlagen', error);
-    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
-  }
-  return false;
 }
 
 async function submitListing(e){
