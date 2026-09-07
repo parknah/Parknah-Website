@@ -152,6 +152,22 @@
     .hero h1{font-size:30px;}
   }
 
+  /* Waitlist */
+  .waitlist{padding:8px 0 44px;}
+  .waitlist-card{
+    background:var(--petrol);
+    color:#fff;
+    border-radius:16px;
+    padding:36px;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .waitlist-card h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:24px;margin:0;color:#fff;}
+  .waitlist-card .intro{color:#C9DAD5;font-size:15px;margin:10px 0 22px;}
+  .waitlist-card .field label{color:#C9DAD5;}
+  .waitlist-card .form-row{margin-bottom:0;}
+  @media (max-width:600px){.waitlist-card{padding:24px;}}
+
   /* Results */
   .results{padding:44px 0 68px;}
   .results-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
@@ -285,6 +301,32 @@
       <div class="ticket-submit">
         <button class="btn" onclick="renderListings()">Suchen</button>
       </div>
+    </div>
+  </div>
+</section>
+
+<section class="waitlist" id="warteliste">
+  <div class="wrap">
+    <div class="waitlist-card">
+      <h2>Parknah kommt.</h2>
+      <p class="intro">Wir bauen Parknah gerade auf. Trag dich jetzt ein und sei von Anfang an dabei.</p>
+      <form id="waitlistForm" onsubmit="return submitWaitlist(event)">
+        <div class="form-row">
+          <div class="field"><label for="w-name">Name</label><input id="w-name" required placeholder="Dein Name"></div>
+          <div class="field"><label for="w-email">E-Mail-Adresse</label><input id="w-email" type="email" required placeholder="du@beispiel.de"></div>
+        </div>
+        <div class="field">
+          <label for="w-interest">Ich bin dabei als ...</label>
+          <select id="w-interest" required>
+            <option value="">Bitte wählen</option>
+            <option value="suche">Ich suche Parkplätze</option>
+            <option value="anbieten">Ich möchte einen Stellplatz anbieten</option>
+            <option value="dabei">Ich möchte einfach dabei sein</option>
+          </select>
+        </div>
+        <button type="submit" class="btn lime" style="width:100%;">Ich möchte dabei sein</button>
+        <div id="waitlistMsg"></div>
+      </form>
     </div>
   </div>
 </section>
@@ -520,6 +562,27 @@ function escapeHtml(str){
 function showInterest(id){
   const listing = allListings.find(l=>l.id===id);
   alert('Danke für dein Interesse! In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.');
+}
+
+async function submitWaitlist(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('waitlistMsg');
+  const entry = {
+    name: document.getElementById('w-name').value.trim(),
+    email: document.getElementById('w-email').value.trim(),
+    interest: document.getElementById('w-interest').value
+  };
+
+  const { error } = await supabaseClient.from('waitlist').insert(entry);
+
+  if(!error){
+    msgEl.innerHTML = '<div class="form-msg ok">Danke! Wir melden uns, sobald es losgeht.</div>';
+    document.getElementById('waitlistForm').reset();
+  }else{
+    console.error('Warteliste-Eintrag fehlgeschlagen', error);
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+  }
+  return false;
 }
 
 async function submitListing(e){

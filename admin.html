@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parknah – Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F6F3EE; --surface:#FFFFFF; --ink:#10201D; --ink-soft:#52605C;
+    --line:#DEDCD2; --petrol:#0A3D3A; --petrol-soft:#E4ECEA;
+    --lime:#A6D608; --lime-ink:#3A4A16; --danger:#A1442E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 24px;}
+  h1{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:26px;}
+  .login-box{max-width:360px;margin:80px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;}
+  .field{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .field input{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14.5px;}
+  .btn{background:var(--petrol);color:#fff;border:none;font-size:15px;font-weight:600;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;}
+  .btn:hover{background:#082e2b;}
+  .msg{margin-top:10px;font-size:14px;padding:8px 10px;border-radius:8px;}
+  .msg.err{background:#F6DFD8;color:var(--danger);}
+  .msg.ok{background:#DCEAE4;color:#20493D;}
+  table{width:100%;border-collapse:collapse;margin-top:18px;background:#fff;border-radius:10px;overflow:hidden;}
+  th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--line);}
+  th{background:var(--petrol-soft);color:var(--petrol);font-weight:700;}
+  .del-btn{background:var(--danger);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+  .del-btn:hover{opacity:0.85;}
+  .section{margin-top:44px;}
+  .topbar{display:flex;justify-content:space-between;align-items:center;}
+  .logout{background:transparent;border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13.5px;}
+  .empty{padding:16px;color:var(--ink-soft);font-size:14px;}
+</style>
+</head>
+<body>
+
+<div id="loginView" class="wrap">
+  <div class="login-box">
+    <h1 style="font-size:20px;">Parknah Admin</h1>
+    <form id="loginForm" onsubmit="return doLogin(event)">
+      <div class="field"><label>E-Mail</label><input id="l-email" type="email" required></div>
+      <div class="field"><label>Passwort</label><input id="l-password" type="password" required></div>
+      <button class="btn" type="submit">Anmelden</button>
+      <div id="loginMsg"></div>
+    </form>
+  </div>
+</div>
+
+<div id="adminView" class="wrap" style="display:none;">
+  <div class="topbar">
+    <h1>Parknah Admin</h1>
+    <button class="logout" onclick="doLogout()">Abmelden</button>
+  </div>
+
+  <div class="section">
+    <h2 style="font-size:18px;">Stellplatz-Einträge</h2>
+    <table id="listingsTable">
+      <thead><tr><th>Name</th><th>Flughafen</th><th>Lage</th><th>Preis</th><th>Kontakt</th><th></th></tr></thead>
+      <tbody id="listingsBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section">
+    <h2 style="font-size:18px;">Warteliste</h2>
+    <table id="waitlistTable">
+      <thead><tr><th>Name</th><th>E-Mail</th><th>Interesse</th><th></th></tr></thead>
+      <tbody id="waitlistBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://efjmifphnuqnvaxylmay.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const interestLabels = { suche: 'Sucht Parkplatz', anbieten: 'Bietet Stellplatz an', dabei: 'Möchte dabei sein' };
+
+async function doLogin(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('loginMsg');
+  const { error } = await supabaseClient.auth.signInWithPassword({
+    email: document.getElementById('l-email').value.trim(),
+    password: document.getElementById('l-password').value
+  });
+  if(error){
+    msgEl.innerHTML = '<div class="msg err">Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.</div>';
+    return false;
+  }
+  showAdmin();
+  return false;
+}
+
+async function doLogout(){
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+async function showAdmin(){
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('adminView').style.display = 'block';
+  await loadListings();
+  await loadWaitlist();
+}
+
+async function loadListings(){
+  const { data, error } = await supabaseClient.from('listings').select('*').order('created_at', { ascending:false });
+  const body = document.getElementById('listingsBody');
+  if(error || !data || data.length === 0){
+    body.innerHTML = '<tr><td colspan="6" class="empty">Noch keine Einträge.</td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(l => `
+    <tr>
+      <td>${escapeHtml(l.name)}</td>
+      <td>${escapeHtml(l.airport)}</td>
+      <td>${escapeHtml(l.location)}</td>
+      <td>${l.price} €</td>
+      <td>${escapeHtml(l.contact)}</td>
+      <td><button class="del-btn" onclick="deleteListing('${l.id}')">Löschen</button></td>
+    </tr>
+  `).join('');
+}
+
+async function loadWaitlist(){
+  const { data, error } = await supabaseClient.from('waitlist').select('*').order('created_at', { ascending:false });
+  const body = document.getElementById('waitlistBody');
+  if(error || !data || data.length === 0){
+    body.innerHTML = '<tr><td colspan="4" class="empty">Noch keine Einträge.</td></tr>';
+    return;
+  }
+  body.innerHTML = data.map(w => `
+    <tr>
+      <td>${escapeHtml(w.name)}</td>
+      <td>${escapeHtml(w.email)}</td>
+      <td>${interestLabels[w.interest] || escapeHtml(w.interest)}</td>
+      <td><button class="del-btn" onclick="deleteWaitlist('${w.id}')">Löschen</button></td>
+    </tr>
+  `).join('');
+}
+
+async function deleteListing(id){
+  if(!confirm('Diesen Stellplatz-Eintrag wirklich löschen?')) return;
+  await supabaseClient.from('listings').delete().eq('id', id);
+  loadListings();
+}
+
+async function deleteWaitlist(id){
+  if(!confirm('Diesen Warteliste-Eintrag wirklich löschen?')) return;
+  await supabaseClient.from('waitlist').delete().eq('id', id);
+  loadWaitlist();
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+(async function init(){
+  const { data } = await supabaseClient.auth.getSession();
+  if(data.session){
+    showAdmin();
+  }
+})();
+</script>
+
+</body>
+</html>
