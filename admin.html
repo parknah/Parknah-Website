@@ -79,6 +79,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const interestLabels = { suche: 'Sucht Parkplatz', anbieten: 'Bietet Stellplatz an', dabei: 'Möchte dabei sein' };
+const availLabels = { einmalig: 'Einmalig', dauerhaft: 'Dauerhaft' };
 
 async function doLogin(e){
   e.preventDefault();
