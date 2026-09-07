@@ -1,191 +1,633 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Parknah – Dein Parkplatz. Genau da, wo du ihn brauchst.</title>
-  <meta name="description" content="PARKNAH verbindet freie private Stellplätze mit Menschen, die genau dort einen Parkplatz suchen.">
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parknah – Private Stellplätze nahe deinem Flughafen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg: #F6F3EE;
+    --surface: #FFFFFF;
+    --ink: #10201D;
+    --ink-soft: #52605C;
+    --line: #DEDCD2;
+    --petrol: #0A3D3A;
+    --petrol-soft: #E4ECEA;
+    --lime: #A6D608;
+    --lime-ink: #3A4A16;
+    --danger: #A1442E;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter', sans-serif;
+    line-height:1.55;
+  }
+  a{color:inherit;}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
+
+  /* Header */
+  header{
+    padding:22px 0;
+    border-bottom:1px solid var(--line);
+  }
+  header .wrap{display:flex;align-items:center;justify-content:space-between;}
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+  }
+  .brand .wordmark{
+    font-family:'Montserrat', sans-serif;
+    font-weight:800;
+    font-size:22px;
+    letter-spacing:0.01em;
+    color:var(--petrol);
+    text-transform:uppercase;
+    display:flex;
+    align-items:center;
+  }
+  .brand .wordmark .dot{
+    display:inline-block;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--lime);
+    margin:0 6px;
+  }
+  .brand svg{display:block;}
+  .nav-link{
+    font-size:15px;
+    font-weight:600;
+    text-decoration:none;
+    border-bottom:2px solid var(--lime);
+    padding-bottom:2px;
+    cursor:pointer;
+  }
+
+  /* Hero */
+  .hero{padding:60px 0 36px;}
+  .hero h1{
+    font-family:'Montserrat', sans-serif;
+    font-weight:800;
+    font-size:40px;
+    line-height:1.18;
+    max-width:640px;
+    letter-spacing:-0.01em;
+    color:var(--petrol);
+    margin:0;
+  }
+  .hero .tagline{
+    display:inline-block;
+    margin-top:16px;
+    font-size:14px;
+    font-weight:600;
+    color:var(--lime-ink);
+    background:var(--lime);
+    padding:5px 12px;
+    border-radius:999px;
+  }
+  .hero p.lead{
+    max-width:520px;
+    font-size:17px;
+    color:var(--ink-soft);
+    margin-top:18px;
+  }
+
+  /* Ticket-style search bar */
+  .ticket{
+    margin-top:34px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:14px;
+    display:flex;
+    align-items:stretch;
+    position:relative;
+  }
+  .ticket::before, .ticket::after{
+    content:"";
+    position:absolute;
+    width:20px;height:20px;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:50%;
+    top:50%;
+    transform:translateY(-50%);
+  }
+  .ticket::before{left:calc(33% - 10px);}
+  .ticket::after{left:calc(66% - 10px);}
+  .ticket-field{
+    flex:1;
+    padding:16px 22px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .ticket-field + .ticket-field{border-left:1px dashed var(--line);}
+  .ticket-field label{font-size:12px;color:var(--ink-soft);}
+  .ticket-field select{
+    border:none;background:transparent;
+    font-family:'Inter', sans-serif;font-size:15px;font-weight:600;
+    color:var(--ink);padding:0;
+  }
+  .ticket-field select:focus{outline:none;}
+  .ticket-submit{display:flex;align-items:center;padding:0 8px 0 0;}
+  .btn{
+    background:var(--petrol);color:#fff;border:none;
+    font-family:'Inter', sans-serif;font-size:15px;font-weight:600;
+    padding:14px 24px;border-radius:10px;cursor:pointer;
+  }
+  .btn:hover{background:#082e2b;}
+  .btn.lime{background:var(--lime);color:var(--lime-ink);}
+  .btn.lime:hover{background:#98b830;}
+  @media (max-width:720px){
+    .ticket{flex-direction:column;}
+    .ticket-field + .ticket-field{border-left:none;border-top:1px dashed var(--line);}
+    .ticket::before,.ticket::after{display:none;}
+    .ticket-submit{padding:16px 22px 22px;}
+    .hero h1{font-size:30px;}
+  }
+
+  /* Waitlist */
+  .waitlist{padding:8px 0 44px;}
+  .waitlist-card{
+    background:var(--petrol);
+    color:#fff;
+    border-radius:16px;
+    padding:36px;
+    max-width:640px;
+    margin:0 auto;
+  }
+  .waitlist-card h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:24px;margin:0;color:#fff;}
+  .waitlist-card .intro{color:#C9DAD5;font-size:15px;margin:10px 0 22px;}
+  .waitlist-card .field label{color:#C9DAD5;}
+  .waitlist-card .form-row{margin-bottom:0;}
+  @media (max-width:600px){.waitlist-card{padding:24px;}}
+
+  /* Results */
+  .results{padding:44px 0 68px;}
+  .results-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
+  .results-head h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:22px;color:var(--petrol);margin:0;}
+  .results-count{font-size:14px;color:var(--ink-soft);}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(260px,1fr));gap:18px;}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;}
+  .tag{align-self:flex-start;font-size:12px;font-weight:700;background:var(--petrol-soft);color:var(--petrol);padding:4px 10px;border-radius:999px;}
+  .card h3{font-size:17px;font-weight:600;font-family:'Inter',sans-serif;margin:0;}
+  .card .loc{font-size:14px;color:var(--ink-soft);}
+  .card .price{font-family:'Montserrat', sans-serif;font-weight:800;font-size:22px;margin-top:4px;color:var(--petrol);}
+  .card .price span{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-soft);}
+  .card .desc{font-size:14px;color:var(--ink-soft);flex:1;}
+  .card .avail{font-size:13px;color:var(--petrol);font-weight:600;}
+  .btn-outline{background:transparent;border:1.5px solid var(--petrol);color:var(--petrol);font-family:'Inter', sans-serif;font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;width:100%;}
+  .btn-outline:hover{background:var(--petrol);color:#fff;}
+  .empty{grid-column:1/-1;padding:40px 20px;text-align:center;color:var(--ink-soft);border:1px dashed var(--line);border-radius:12px;}
+
+  /* Offer section */
+  .offer{background:var(--petrol);color:#EFF5F3;padding:60px 0;}
+  .offer .wrap{display:grid;grid-template-columns:1fr 1.2fr;gap:48px;}
+  .offer h2{font-family:'Montserrat', sans-serif;font-weight:800;color:#fff;font-size:28px;max-width:380px;margin:0;}
+  .offer p.intro{color:#C9DAD5;font-size:15px;margin-top:14px;max-width:380px;}
+  .benefits{margin-top:26px;display:flex;flex-direction:column;gap:14px;}
+  .benefit{display:flex;gap:12px;align-items:flex-start;}
+  .benefit .num{font-family:'Montserrat', sans-serif;font-weight:800;font-size:16px;color:var(--lime);min-width:22px;}
+  .benefit p{margin:0;color:#E4EDEA;font-size:14.5px;}
+
+  .form-card{background:#F8F7F2;color:var(--ink);border-radius:14px;padding:26px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media (max-width:600px){.form-row{grid-template-columns:1fr;} .offer .wrap{grid-template-columns:1fr;}}
+  .field{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .field input, .field textarea, .field select{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:'Inter', sans-serif;font-size:14.5px;background:#fff;color:var(--ink);}
+  .field textarea{resize:vertical;min-height:60px;}
+  .field input:focus, .field textarea:focus, .field select:focus{outline:2px solid var(--lime);outline-offset:1px;}
+  .checkbox-field{display:flex;gap:10px;align-items:flex-start;margin:16px 0;}
+  .checkbox-field input{margin-top:3px;}
+  .checkbox-field label{font-size:13px;color:var(--ink-soft);line-height:1.4;}
+  .hint{font-size:12px;color:var(--ink-soft);margin-top:-8px;margin-bottom:14px;line-height:1.5;}
+  .form-msg{margin-top:12px;font-size:14px;padding:10px 12px;border-radius:8px;}
+  .form-msg.ok{background:#DCEAE4;color:#20493D;}
+  .form-msg.err{background:#F6DFD8;color:var(--danger);}
+
+  /* Legal sections */
+  .legal{padding:56px 0;border-top:1px solid var(--line);}
+  .legal h2{font-family:'Montserrat', sans-serif;font-weight:800;color:var(--petrol);font-size:24px;margin-bottom:14px;}
+  .legal h3{font-size:15px;font-weight:700;color:var(--ink);margin:20px 0 6px;}
+  .legal p, .legal li{font-size:14.5px;color:var(--ink-soft);}
+  .legal .placeholder{background:#FFF7E0;border:1px dashed #D8B94A;color:#6B551A;padding:2px 6px;border-radius:4px;font-weight:600;}
+
+  footer{padding:32px 0 20px;font-size:13px;color:var(--ink-soft);}
+  footer .wrap{display:block;}
+  footer .main-line{margin-bottom:18px;}
+  footer .links{display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#9aa39d;}
+  footer .links a{cursor:pointer;text-decoration:none;}
+  footer .links a:hover{text-decoration:underline;}
+
+  /* Legal modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;inset:0;
+    background:rgba(16,32,29,0.55);
+    z-index:100;
+    padding:24px;
+    align-items:flex-start;
+    justify-content:center;
+    overflow-y:auto;
+  }
+  .modal-overlay.active{display:flex;}
+  .modal-box{
+    background:#fff;
+    border-radius:14px;
+    max-width:640px;
+    width:100%;
+    margin-top:40px;
+    padding:32px;
+    position:relative;
+  }
+  .modal-close{
+    position:absolute;
+    top:18px;right:18px;
+    background:var(--petrol-soft);
+    color:var(--petrol);
+    border:none;
+    width:32px;height:32px;
+    border-radius:50%;
+    font-size:16px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .modal-close:hover{background:var(--petrol);color:#fff;}
+</style>
 </head>
-
 <body>
-  <!-- HEADER -->
-  <header class="site-header">
-    <div class="header-inner">
-      <a href="#" class="logo-link" aria-label="PARKNAH Startseite">
-        <img
-          src="https://static.wixstatic.com/media/77c52a_f82937444f1c4944814984c35453d2d4~mv2.png"
-          alt="PARKNAH Logo"
-          class="logo"
-        >
-      </a>
 
-      <nav class="main-nav" aria-label="Hauptnavigation">
-        <a href="#" class="nav-link active">Home</a>
-        <a href="#abos" class="nav-link">Meine Abonnements</a>
-        <a href="#buchen" class="nav-link">Online buchen</a>
-      </nav>
-
-      <div class="header-actions">
-        <button class="login-button" type="button" onclick="alert('Die Anmeldung wird im nächsten Schritt mit Supabase verbunden.')">
-          <span class="user-icon" aria-hidden="true">♙</span>
-          <span>Anmelden</span>
-        </button>
-      </div>
-
-      <button class="mobile-menu-button" type="button" aria-label="Menü öffnen" aria-expanded="false">
-        ☰
-      </button>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true">
+        <path d="M2 8 V2 H14" fill="none" stroke="#0A3D3A" stroke-width="3.2" stroke-linecap="square"/>
+        <path d="M28 22 V28 H16" fill="none" stroke="#A8C93A" stroke-width="3.2" stroke-linecap="square"/>
+      </svg>
+      <span class="wordmark">Park<span class="dot"></span>nah</span>
     </div>
-  </header>
+    <a class="nav-link" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</a>
+  </div>
+</header>
 
-  <main>
-    <!-- HERO -->
-    <section class="hero">
-      <div class="hero-background"></div>
+<section class="hero">
+  <div class="wrap">
+    <h1>Dein Auto steht günstiger als im Parkhaus – direkt bei jemandem in der Nähe.</h1>
+    <span class="tagline">Parknah – Dein Platz. Einfach da.</span>
+    <p class="lead">Parknah verbindet Reisende mit privaten Stellplätzen nahe deutschen Flughäfen. Kein Parkhaus-Aufpreis, keine endlosen Nachrichten – nur echte Nachbarn mit einer freien Einfahrt.</p>
 
-      <div class="hero-content">
-        <div class="hero-text">
-          <h1>Dein Parkplatz.<br>Genau da,<br>wo du ihn brauchst.</h1>
-
-          <p>
-            PARKNAH verbindet <strong>freie private Stellplätze</strong>
-            mit Menschen, die genau dort einen Parkplatz suchen.
-          </p>
-
-          <a href="#buchen" class="primary-button">
-            Parkplatz finden
-            <span aria-hidden="true">↗</span>
-          </a>
-        </div>
+    <div class="ticket">
+      <div class="ticket-field">
+        <label for="airportSelect">Flughafen</label>
+        <select id="airportSelect" onchange="renderListings()">
+          <option value="">Alle Flughäfen</option>
+        </select>
       </div>
-    </section>
+      <div class="ticket-field">
+        <label for="sortSelect">Sortieren</label>
+        <select id="sortSelect" onchange="renderListings()">
+          <option value="price-asc">Preis: aufsteigend</option>
+          <option value="price-desc">Preis: absteigend</option>
+          <option value="new">Neueste zuerst</option>
+        </select>
+      </div>
+      <div class="ticket-submit">
+        <button class="btn" onclick="renderListings()">Suchen</button>
+      </div>
+    </div>
+  </div>
+</section>
 
-    <!-- SEARCH / BOOKING -->
-    <section class="booking-section" id="buchen">
-      <div class="section-inner">
-        <div class="section-heading">
-          <span class="eyebrow">PARKPLATZ FINDEN</span>
-          <h2>Parken, wo du hinmusst.</h2>
-          <p>Finde einen privaten Stellplatz in deiner Nähe.</p>
+<section class="waitlist" id="warteliste">
+  <div class="wrap">
+    <div class="waitlist-card">
+      <h2>Parknah kommt.</h2>
+      <p class="intro">Wir bauen Parknah gerade auf. Trag dich jetzt ein und sei von Anfang an dabei.</p>
+      <form id="waitlistForm" onsubmit="return submitWaitlist(event)">
+        <div class="form-row">
+          <div class="field"><label for="w-name">Name</label><input id="w-name" required placeholder="Dein Name"></div>
+          <div class="field"><label for="w-email">E-Mail-Adresse</label><input id="w-email" type="email" required placeholder="du@beispiel.de"></div>
         </div>
+        <div class="field">
+          <label for="w-interest">Ich bin dabei als ...</label>
+          <select id="w-interest" required>
+            <option value="">Bitte wählen</option>
+            <option value="suche">Ich suche Parkplätze</option>
+            <option value="anbieten">Ich möchte einen Stellplatz anbieten</option>
+            <option value="dabei">Ich möchte einfach dabei sein</option>
+          </select>
+        </div>
+        <button type="submit" class="btn lime" style="width:100%;">Ich möchte dabei sein</button>
+        <div id="waitlistMsg"></div>
+      </form>
+    </div>
+  </div>
+</section>
 
-        <form class="search-card" id="parkingSearch">
-          <div class="form-field">
-            <label for="location">Wo möchtest du parken?</label>
-            <input
-              id="location"
-              name="location"
-              type="text"
-              placeholder="Ort, Adresse oder PLZ"
-            >
+<section class="results">
+  <div class="wrap">
+    <div class="results-head">
+      <h2>Verfügbare Stellplätze</h2>
+      <span class="results-count" id="resultsCount">wird geladen …</span>
+    </div>
+    <div class="grid" id="grid">
+      <div class="empty">Angebote werden geladen …</div>
+    </div>
+  </div>
+</section>
+
+<section class="offer" id="anbieten">
+  <div class="wrap">
+    <div>
+      <h2>Steht dein Platz oft leer?</h2>
+      <p class="intro">Trag deinen Stellplatz kostenlos ein. Reisende in deiner Nähe finden ihn direkt über Parknah – ganz ohne dass du Anzeigen schalten oder Nachrichten beantworten musst, die zu nichts führen.</p>
+      <div class="benefits">
+        <div class="benefit"><div class="num">1</div><p>Einmal eintragen, dauerhaft sichtbar für Reisende in deiner Region.</p></div>
+        <div class="benefit"><div class="num">2</div><p>Du entscheidest selbst über Preis und Verfügbarkeit.</p></div>
+        <div class="benefit"><div class="num">3</div><p>Wir sind in der Testphase – dein Eintrag hilft uns direkt zu zeigen, wie groß die Nachfrage wirklich ist.</p></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <h3 style="font-size:19px;margin:0 0 16px;font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);">Stellplatz eintragen</h3>
+      <form id="listingForm" onsubmit="return submitListing(event)">
+        <div class="form-row">
+          <div class="field"><label for="f-name">Dein Name</label><input id="f-name" required placeholder="z. B. Anna M."></div>
+          <div class="field"><label for="f-contact">Kontakt (E-Mail oder Telefon)</label><input id="f-contact" required placeholder="anna@beispiel.de"></div>
+        </div>
+        <div class="form-row">
+          <div class="field">
+            <label for="f-airport">Nächster Flughafen</label>
+            <select id="f-airport" required><option value="">Bitte wählen</option></select>
           </div>
-
-          <div class="form-field">
-            <label for="date">Datum</label>
-            <input id="date" name="date" type="date">
-          </div>
-
-          <button class="search-button" type="submit">
-            Stellplätze suchen
-          </button>
-        </form>
-      </div>
-    </section>
-
-    <!-- HOW IT WORKS -->
-    <section class="how-it-works">
-      <div class="section-inner">
-        <div class="section-heading">
-          <span class="eyebrow">SO FUNKTIONIERT PARKNAH</span>
-          <h2>Einfach. Nah. Parknah.</h2>
+          <div class="field"><label for="f-price">Preis pro Tag (€)</label><input id="f-price" type="number" min="1" step="0.5" required placeholder="6"></div>
         </div>
+        <div class="field"><label for="f-location">Ungefähre Lage</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
+        <div class="field"><label for="f-availability">Verfügbarkeit</label><input id="f-availability" required placeholder="z. B. jederzeit, oder nur an Wochenenden"></div>
+        <div class="field"><label for="f-desc">Kurzbeschreibung (optional)</label><textarea id="f-desc" placeholder="z. B. eingezäunte Einfahrt, Schlüsselübergabe möglich"></textarea></div>
 
-        <div class="steps">
-          <article class="step">
-            <div class="step-number">01</div>
-            <h3>Stellplatz finden</h3>
-            <p>Suche nach einem freien privaten Parkplatz an deinem gewünschten Ort.</p>
-          </article>
-
-          <article class="step">
-            <div class="step-number">02</div>
-            <h3>Online buchen</h3>
-            <p>Wähle deinen Stellplatz und buche ihn bequem online.</p>
-          </article>
-
-          <article class="step">
-            <div class="step-number">03</div>
-            <h3>Parken</h3>
-            <p>Ankommen, parken und entspannt dein Ziel erreichen.</p>
-          </article>
+        <div class="checkbox-field">
+          <input type="checkbox" id="f-berechtigt" required>
+          <label for="f-berechtigt">Ich bestätige, dass ich berechtigt bin, diesen Stellplatz zu vermieten bzw. unterzuvermieten.</label>
         </div>
-      </div>
-    </section>
+        <p class="hint">Als Mieter*in brauchst du dafür in der Regel die Zustimmung deines Vermieters. Bei Eigentumswohnungen mit Tiefgaragen-Stellplatz lohnt ein Blick in die Teilungserklärung bzw. WEG-Beschlüsse.</p>
 
-    <!-- FOR PARKING SPACE OWNERS -->
-    <section class="owners-section">
-      <div class="section-inner owners-grid">
-        <div>
-          <span class="eyebrow">STELLPLATZ ANBIETEN</span>
-          <h2>Du hast einen freien Stellplatz?</h2>
-          <p>
-            Mach aus ungenutztem Platz einen Mehrwert und biete deinen
-            Stellplatz Menschen in deiner Nähe an.
-          </p>
-          <a href="#anbieten" class="secondary-button">Stellplatz anbieten</a>
-        </div>
+        <button type="submit" class="btn lime" style="width:100%;">Platz eintragen</button>
+        <div id="formMsg"></div>
+      </form>
+    </div>
+  </div>
+</section>
 
-        <div class="owners-card">
-          <span class="owners-card-icon">⌖</span>
-          <strong>Dein Platz kann gebraucht werden.</strong>
-          <span>Einfach anbieten. Flexibel bleiben.</span>
-        </div>
-      </div>
-    </section>
+<div class="modal-overlay" id="impressum">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('impressum')" aria-label="Schließen">✕</button>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:22px;margin:0 0 14px;">Impressum</h2>
+    <p style="font-size:14px;color:var(--ink-soft);">Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG)</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Verantwortlich für den Inhalt</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">
+      Sina Bachmann &amp; Stefanie Tremmel<br>
+      <span class="placeholder">[Straße und Hausnummer einsetzen – gesetzlich zwingend erforderlich]</span><br>
+      <span class="placeholder">[PLZ und Ort einsetzen – gesetzlich zwingend erforderlich]</span><br>
+      Deutschland
+    </p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Kontakt</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">
+      Telefon: 0151 46352220<br>
+      E-Mail: <span class="placeholder">[E-Mail-Adresse einsetzen – gesetzlich erforderlich für schnelle elektronische Kontaktaufnahme]</span>
+    </p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Hinweis zur Testphase</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Parknah befindet sich aktuell in der Test- und Validierungsphase. Es findet noch keine automatisierte Buchung oder Zahlungsabwicklung über diese Seite statt.</p>
+  </div>
+</div>
 
-    <!-- SUBSCRIPTIONS -->
-    <section class="subscriptions-section" id="abos">
-      <div class="section-inner">
-        <div class="section-heading">
-          <span class="eyebrow">FÜR DEINE REGELMÄSSIGEN WEGE</span>
-          <h2>Meine Abonnements</h2>
-          <p>Verwalte deine gebuchten Stellplätze später bequem in deinem Konto.</p>
-        </div>
+<div class="modal-overlay" id="datenschutz">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal('datenschutz')" aria-label="Schließen">✕</button>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:22px;margin:0 0 14px;">Datenschutzerklärung</h2>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">1. Verantwortliche Stelle</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Verantwortlich für die Datenverarbeitung auf dieser Website sind die im Impressum genannten Personen.</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">2. Welche Daten wir verarbeiten</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Wenn du über das Formular einen Stellplatz einträgst, verarbeiten wir: Name, Kontaktdaten (E-Mail und/oder Telefonnummer), ungefähre Standortangabe, Preis, Verfügbarkeit sowie eine optionale Beschreibung.</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">3. Zweck der Verarbeitung</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Die Daten werden ausschließlich genutzt, um deinen Stellplatz auf der Plattform anzuzeigen und um Anfragen von Suchenden an dich vermitteln zu können. In der aktuellen Testphase erfolgt diese Vermittlung teilweise manuell durch uns.</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">4. Speicherung</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Die Daten werden auf der technischen Infrastruktur unseres Hosting- bzw. Plattformanbieters gespeichert. Eine Weitergabe an Dritte erfolgt nur insoweit, wie es zur Vermittlung des Stellplatzes notwendig ist.</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">5. Deine Rechte</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Du hast jederzeit das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung deiner Daten sowie ein Widerspruchsrecht. Wende dich dafür an die im Impressum genannte Kontakt-E-Mail-Adresse.</p>
+    <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">6. Cookies &amp; Tracking</h3>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Diese Seite verwendet aktuell keine Marketing-Cookies oder Tracking-Pixel. Sollte sich das ändern (z. B. durch Werbeanzeigen), wird diese Erklärung entsprechend aktualisiert und ein Einwilligungsbanner ergänzt.</p>
+    <p style="margin-top:16px;"><span class="placeholder">Hinweis: Dies ist eine vereinfachte Vorlage für die Testphase. Vor dem echten Live-Betrieb mit Zahlungsabwicklung empfiehlt sich eine Prüfung durch einen Fachanwalt oder einen Generator wie e-recht24.de.</span></p>
+  </div>
+</div>
 
-        <div class="empty-state">
-          <span>♡</span>
-          <p>Noch keine Abonnements vorhanden.</p>
-          <a href="#buchen" class="text-link">Stellplatz finden →</a>
-        </div>
-      </div>
-    </section>
-  </main>
+<footer>
+  <div class="wrap">
+    <div class="main-line">Parknah — Testphase. Noch keine Buchung oder Zahlung über die Seite, wir vermitteln aktuell manuell.</div>
+    <div class="links">
+      <a onclick="openModal('impressum')">Impressum</a>
+      <a onclick="openModal('datenschutz')">Datenschutz</a>
+    </div>
+  </div>
+</footer>
 
-  <!-- FOOTER -->
-  <footer class="site-footer">
-    <div class="footer-inner">
-      <div>
-        <img
-          src="https://static.wixstatic.com/media/77c52a_f82937444f1c4944814984c35453d2d4~mv2.png"
-          alt="PARKNAH"
-          class="footer-logo"
-        >
-        <p>Dein Parkplatz. Genau da, wo du ihn brauchst.</p>
-      </div>
+<script>
+const AIRPORTS = [
+  "Frankfurt (FRA)", "München (MUC)", "Düsseldorf (DUS)", "Berlin (BER)",
+  "Hamburg (HAM)", "Köln/Bonn (CGN)", "Stuttgart (STR)", "Baden-Airpark (FKB)",
+  "Nürnberg (NUE)", "Hannover (HAJ)"
+];
 
-      <div class="footer-links">
-        <a href="#">Impressum</a>
-        <a href="#">Datenschutz</a>
-        <a href="#">Kontakt</a>
+// ---- Supabase-Konfiguration ----
+// Diese beiden Werte findest du in deinem Supabase-Projekt unter
+// "Project Settings" -> "API". Trag sie hier ein, bevor die Seite live geht.
+const SUPABASE_URL = "https://efjmifphnuqnvaxylmay.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
+
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+function populateAirportSelects(){
+  const searchSel = document.getElementById('airportSelect');
+  const formSel = document.getElementById('f-airport');
+  AIRPORTS.forEach(a=>{
+    const o1 = document.createElement('option'); o1.value=a; o1.textContent=a;
+    searchSel.appendChild(o1);
+    const o2 = document.createElement('option'); o2.value=a; o2.textContent=a;
+    formSel.appendChild(o2);
+  });
+}
+
+async function loadListings(){
+  const { data, error } = await supabaseClient
+    .from('listings')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if(error){
+    console.error('Laden fehlgeschlagen', error);
+    return [];
+  }
+  // Auf das im Rest des Codes erwartete Format abbilden
+  return data.map(row => ({
+    id: row.id,
+    name: row.name,
+    contact: row.contact,
+    airport: row.airport,
+    location: row.location,
+    price: row.price,
+    availability: row.availability,
+    description: row.description,
+    createdAt: new Date(row.created_at).getTime()
+  }));
+}
+
+async function insertListing(listing){
+  const { error } = await supabaseClient.from('listings').insert({
+    name: listing.name,
+    contact: listing.contact,
+    airport: listing.airport,
+    location: listing.location,
+    price: listing.price,
+    availability: listing.availability,
+    description: listing.description
+  });
+
+  if(error){
+    console.error('Speichern fehlgeschlagen', error);
+    return false;
+  }
+  return true;
+}
+
+let allListings = [];
+
+async function renderListings(){
+  const grid = document.getElementById('grid');
+  const countEl = document.getElementById('resultsCount');
+  const airportFilter = document.getElementById('airportSelect').value;
+  const sort = document.getElementById('sortSelect').value;
+
+  let list = allListings.filter(l => !airportFilter || l.airport === airportFilter);
+  if(sort === 'price-asc') list.sort((a,b)=>a.price-b.price);
+  if(sort === 'price-desc') list.sort((a,b)=>b.price-a.price);
+  if(sort === 'new') list.sort((a,b)=>b.createdAt-a.createdAt);
+
+  countEl.textContent = list.length + (list.length===1 ? ' Stellplatz gefunden' : ' Stellplätze gefunden');
+
+  if(list.length === 0){
+    grid.innerHTML = '<div class="empty">Für diesen Flughafen ist noch kein Stellplatz eingetragen. Trag unten den ersten ein.</div>';
+    return;
+  }
+
+  grid.innerHTML = list.map(l => `
+    <div class="card">
+      <span class="tag">${l.airport}</span>
+      <h3>${escapeHtml(l.location)}</h3>
+      <div class="loc">Angeboten von ${escapeHtml(l.name)}</div>
+      <div class="price">${l.price} € <span>/ Tag</span></div>
+      ${l.description ? `<div class="desc">${escapeHtml(l.description)}</div>` : ''}
+      <div class="avail">Verfügbar: ${escapeHtml(l.availability)}</div>
+      <div class="card-actions">
+        <button class="btn-outline" onclick="showInterest('${l.id}')">Interesse melden</button>
       </div>
     </div>
+  `).join('');
+}
 
-    <div class="footer-bottom">
-      © 2026 PARKNAH
-    </div>
-  </footer>
+function openModal(id){
+  document.getElementById(id).classList.add('active');
+}
+function closeModal(id){
+  document.getElementById(id).classList.remove('active');
+}
+document.querySelectorAll('.modal-overlay').forEach(overlay=>{
+  overlay.addEventListener('click', (e)=>{
+    if(e.target === overlay) overlay.classList.remove('active');
+  });
+});
 
-  <script src="script.js"></script>
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+function showInterest(id){
+  const listing = allListings.find(l=>l.id===id);
+  alert('Danke für dein Interesse! In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.');
+}
+
+async function submitWaitlist(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('waitlistMsg');
+  const entry = {
+    name: document.getElementById('w-name').value.trim(),
+    email: document.getElementById('w-email').value.trim(),
+    interest: document.getElementById('w-interest').value
+  };
+
+  const { error } = await supabaseClient.from('waitlist').insert(entry);
+
+  if(!error){
+    msgEl.innerHTML = '<div class="form-msg ok">Danke! Wir melden uns, sobald es losgeht.</div>';
+    document.getElementById('waitlistForm').reset();
+  }else{
+    console.error('Warteliste-Eintrag fehlgeschlagen', error);
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+  }
+  return false;
+}
+
+async function submitListing(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('formMsg');
+  const newListing = {
+    id: 'l' + Date.now(),
+    name: document.getElementById('f-name').value.trim(),
+    contact: document.getElementById('f-contact').value.trim(),
+    airport: document.getElementById('f-airport').value,
+    location: document.getElementById('f-location').value.trim(),
+    price: parseFloat(document.getElementById('f-price').value),
+    availability: document.getElementById('f-availability').value.trim(),
+    description: document.getElementById('f-desc').value.trim(),
+    createdAt: Date.now()
+  };
+
+  if(!newListing.airport){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte wähle einen Flughafen aus.</div>';
+    return false;
+  }
+  if(!document.getElementById('f-berechtigt').checked){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte bestätige, dass du zur Vermietung berechtigt bist.</div>';
+    return false;
+  }
+
+  const ok = await insertListing(newListing);
+
+  if(ok){
+    msgEl.innerHTML = '<div class="form-msg ok">Danke! Dein Stellplatz wurde eingetragen und ist jetzt oben in der Liste sichtbar.</div>';
+    document.getElementById('listingForm').reset();
+    allListings = await loadListings();
+    renderListings();
+  }else{
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+  }
+  return false;
+}
+
+(async function init(){
+  populateAirportSelects();
+  allListings = await loadListings();
+  renderListings();
+})();
+</script>
+
 </body>
 </html>
