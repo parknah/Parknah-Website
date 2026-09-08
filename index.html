@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Parknah – Private Stellplätze nahe deinem Flughafen</title>
+<title>Parknah – Private Stellplätze in deiner Nähe</title>
 <link rel="icon" type="image/png" href="favicon.png">
 <link rel="shortcut icon" type="image/png" href="favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -140,12 +140,12 @@
   }
   .ticket-field + .ticket-field{border-left:1px solid var(--line);}
   .ticket-field label{font-size:12px;color:var(--ink-soft);}
-  .ticket-field select{
+  .ticket-field select, .ticket-field input{
     border:none;background:transparent;
     font-family:'Inter', sans-serif;font-size:15px;font-weight:600;
     color:var(--ink);padding:0;
   }
-  .ticket-field select:focus{outline:none;}
+  .ticket-field select:focus, .ticket-field input:focus{outline:none;}
   .ticket-submit{display:flex;align-items:center;padding:10px 10px 10px 0;}
   .btn{
     background:var(--petrol);color:#fff;border:none;
@@ -198,7 +198,16 @@
   .results-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:8px;}
   .results-head h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:22px;color:var(--petrol);margin:0;}
   .results-count{font-size:14px;color:var(--ink-soft);}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(260px,1fr));gap:18px;}
+  .results-layout{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-items:start;}
+  .results-map{width:100%;height:600px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--petrol-soft);}
+  .map-note{font-size:12px;color:var(--ink-soft);margin-top:8px;}
+  .results-layout > div:last-child{position:sticky;top:20px;}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px,1fr));gap:18px;}
+  @media (max-width:900px){
+    .results-layout{grid-template-columns:1fr;}
+    .results-map{height:320px;}
+    .results-layout > div:last-child{position:static;}
+  }
   .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;display:flex;flex-direction:column;gap:10px;}
   .tag{align-self:flex-start;font-size:12px;font-weight:700;background:var(--petrol-soft);color:var(--petrol);padding:4px 10px;border-radius:999px;}
   .card h3{font-size:17px;font-weight:600;font-family:'Inter',sans-serif;margin:0;}
@@ -340,14 +349,13 @@
 <div class="wrap ticket-wrap">
   <div class="ticket">
     <div class="ticket-field">
-      <label for="airportSelect">Flughafen</label>
-      <select id="airportSelect" onchange="renderListings()">
-        <option value="">Alle Flughäfen</option>
-      </select>
+      <label for="locationSearch">Ort oder PLZ</label>
+      <input id="locationSearch" type="text" placeholder="z. B. Köln oder 50667" autocomplete="off">
     </div>
     <div class="ticket-field">
       <label for="sortSelect">Sortieren</label>
       <select id="sortSelect" onchange="renderListings()">
+        <option value="distance">Entfernung</option>
         <option value="price-asc">Preis: aufsteigend</option>
         <option value="price-desc">Preis: absteigend</option>
         <option value="new">Neueste zuerst</option>
@@ -375,7 +383,7 @@
     <div>
       <h2 class="section-title" style="text-align:left;margin-bottom:28px;">Parken, wo du hinwillst.</h2>
       <div class="benefits4-list">
-        <div><h4>Nähe</h4><p>Parkplätze direkt in der Nähe deines Ziels.</p></div>
+        <div><h4>Nähe</h4><p>Parkplätze direkt in der Nähe deines Ziels – vom Flughafen bis zur Innenstadt.</p></div>
         <div><h4>Verfügbarkeit</h4><p>Sieh, wann Stellplätze frei sind.</p></div>
         <div><h4>Wahl</h4><p>Von Carports bis Garagen – du entscheidest.</p></div>
         <div><h4>Einfach buchen</h4><p>Stellplatz auswählen, Kontakt aufnehmen, fertig.</p></div>
@@ -390,8 +398,14 @@
       <h2>Verfügbare Stellplätze</h2>
       <span class="results-count" id="resultsCount">wird geladen …</span>
     </div>
-    <div class="grid" id="grid">
-      <div class="empty">Angebote werden geladen …</div>
+    <div class="results-layout">
+      <div class="grid" id="grid">
+        <div class="empty">Angebote werden geladen …</div>
+      </div>
+      <div>
+        <div id="resultsMap" class="results-map"></div>
+        <p class="map-note">Die Positionen auf der Karte sind ungefähre Standorte (zufällig leicht verschoben) und keine exakten Adressen.</p>
+      </div>
     </div>
   </div>
 </section>
@@ -420,14 +434,16 @@
           <div class="field"><label for="f-name">Dein Name</label><input id="f-name" required placeholder="z. B. Anna M."></div>
           <div class="field"><label for="f-contact">E-Mail-Adresse</label><input id="f-contact" type="email" required placeholder="anna@beispiel.de"></div>
         </div>
+        <div class="field">
+          <label for="f-address">Genaue Adresse (nur für die Karte, wird nicht öffentlich angezeigt)</label>
+          <input id="f-address" required placeholder="Adresse eingeben und auswählen" autocomplete="off">
+          <input type="hidden" id="f-lat">
+          <input type="hidden" id="f-lng">
+        </div>
         <div class="form-row">
-          <div class="field">
-            <label for="f-airport">Nächster Flughafen</label>
-            <select id="f-airport" required><option value="">Bitte wählen</option></select>
-          </div>
+          <div class="field"><label for="f-location">Ungefähre Lage (öffentlich sichtbar)</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
           <div class="field"><label for="f-price">Preis pro Tag (€)</label><input id="f-price" type="number" min="1" step="0.5" required placeholder="6"></div>
         </div>
-        <div class="field"><label for="f-location">Ungefähre Lage</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
 
         <div class="field">
           <label>Verfügbarkeit</label>
@@ -624,7 +640,7 @@
     <p style="font-size:14.5px;color:var(--ink-soft);">Die über das Formular eingetragenen Daten speichern wir über den Dienstleister Supabase Inc. Der Speicherort ist bei uns auf eine EU-Region (Frankfurt am Main) eingestellt, die Daten verbleiben also innerhalb der EU. Mit der Nutzung von Supabase gilt automatisch dessen Auftragsverarbeitungsvertrag gemäß Art. 28 DSGVO (öffentlich einsehbar unter supabase.com/legal/dpa). Weitere Informationen: <a href="https://supabase.com/privacy" target="_blank" rel="noopener" style="color:var(--petrol);">supabase.com/privacy</a>.</p>
 
     <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">4. Welche Daten wir verarbeiten</h3>
-    <p style="font-size:14.5px;color:var(--ink-soft);">Wenn du über das Formular einen Stellplatz einträgst, verarbeiten wir: Name, Kontaktdaten (E-Mail und/oder Telefonnummer), ungefähre Standortangabe, Preis, Verfügbarkeit sowie eine optionale Beschreibung.</p>
+    <p style="font-size:14.5px;color:var(--ink-soft);">Wenn du über das Formular einen Stellplatz einträgst, verarbeiten wir: Name, Kontaktdaten (E-Mail und/oder Telefonnummer), ungefähre Standortangabe, Preis, Verfügbarkeit sowie eine optionale Beschreibung. Zur Anzeige auf der Karte wird zusätzlich die von dir eingegebene Adresse einmalig in Koordinaten umgewandelt; die gespeicherte und öffentlich angezeigte Position wird dabei automatisch um bis zu 150 Meter zufällig verschoben, sodass keine exakte Adresse veröffentlicht wird. Die tatsächliche Adresse selbst speichern wir nicht.</p>
 
     <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">5. Zweck und Rechtsgrundlage der Verarbeitung</h3>
     <p style="font-size:14.5px;color:var(--ink-soft);">Die Daten werden genutzt, um deinen Stellplatz auf der Plattform anzuzeigen und um Anfragen von Suchenden an dich vermitteln zu können. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO (zur Durchführung vorvertraglicher Maßnahmen bzw. Erfüllung des Vermittlungswunsches) sowie Art. 6 Abs. 1 lit. f DSGVO (unser berechtigtes Interesse am Aufbau und Betrieb der Plattform). In der aktuellen Testphase erfolgt die Vermittlung teilweise manuell durch uns.</p>
@@ -658,11 +674,10 @@
 </footer>
 
 <script>
-const AIRPORTS = [
-  "Frankfurt (FRA)", "München (MUC)", "Düsseldorf (DUS)", "Berlin (BER)",
-  "Hamburg (HAM)", "Köln/Bonn (CGN)", "Stuttgart (STR)", "Baden-Airpark (FKB)",
-  "Nürnberg (NUE)", "Hannover (HAJ)", "Memmingen (FMM)"
-];
+// ---- Google Maps Konfiguration ----
+// API-Key aus der Google Cloud Console eintragen (Places API + Maps
+// JavaScript API müssen dort aktiviert sein). Siehe SETUP.md.
+const GOOGLE_MAPS_API_KEY = "DEIN_GOOGLE_MAPS_API_KEY";
 
 // ---- Supabase-Konfiguration ----
 // Diese beiden Werte findest du in deinem Supabase-Projekt unter
@@ -672,33 +687,103 @@ const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-function populateAirportSelects(){
-  const searchSel = document.getElementById('airportSelect');
-  const formSel = document.getElementById('f-airport');
-  AIRPORTS.forEach(a=>{
-    const o1 = document.createElement('option'); o1.value=a; o1.textContent=a;
-    searchSel.appendChild(o1);
-    const o2 = document.createElement('option'); o2.value=a; o2.textContent=a;
-    formSel.appendChild(o2);
+let searchLocation = null; // { lat, lng, label }
+let resultsMap = null;
+let mapMarkers = [];
+
+function loadGoogleMapsScript(){
+  const script = document.createElement('script');
+  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + GOOGLE_MAPS_API_KEY + '&libraries=places&callback=onGoogleMapsLoaded';
+  script.async = true;
+  document.head.appendChild(script);
+}
+
+function onGoogleMapsLoaded(){
+  // Autocomplete für die Suchleiste
+  const searchInput = document.getElementById('locationSearch');
+  const searchAutocomplete = new google.maps.places.Autocomplete(searchInput, {
+    componentRestrictions: { country: 'de' },
+    fields: ['geometry', 'formatted_address', 'name']
   });
+  searchAutocomplete.addListener('place_changed', () => {
+    const place = searchAutocomplete.getPlace();
+    if(place.geometry){
+      searchLocation = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng()
+      };
+      renderListings();
+    }
+  });
+
+  // Autocomplete für das Eintragen-Formular (nur zur Koordinaten-Ermittlung)
+  const addressInput = document.getElementById('f-address');
+  if(addressInput){
+    const formAutocomplete = new google.maps.places.Autocomplete(addressInput, {
+      componentRestrictions: { country: 'de' },
+      fields: ['geometry', 'formatted_address']
+    });
+    formAutocomplete.addListener('place_changed', () => {
+      const place = formAutocomplete.getPlace();
+      if(place.geometry){
+        document.getElementById('f-lat').value = place.geometry.location.lat();
+        document.getElementById('f-lng').value = place.geometry.location.lng();
+      }
+    });
+  }
+
+  initResultsMap();
+  renderListings();
+}
+
+function initResultsMap(){
+  resultsMap = new google.maps.Map(document.getElementById('resultsMap'), {
+    center: { lat: 51.1657, lng: 10.4515 }, // Mitte Deutschlands
+    zoom: 6,
+    mapId: 'PARKNAH_MAP'
+  });
+}
+
+// Entfernung in km zwischen zwei Koordinaten (Haversine-Formel)
+// Verschiebt eine Koordinate zufällig um bis zu maxMeters (Datenschutz:
+// die exakte Adresse soll nie öffentlich/auf der Karte sichtbar sein)
+function jitterCoordinates(lat, lng, maxMeters = 150){
+  const radiusInDegreesLat = maxMeters / 111320;
+  const radiusInDegreesLng = maxMeters / (111320 * Math.cos(lat * Math.PI/180));
+
+  const angle = Math.random() * 2 * Math.PI;
+  const distance = Math.sqrt(Math.random()) * 1; // gleichmäßige Verteilung in der Fläche
+
+  return {
+    lat: lat + (distance * radiusInDegreesLat * Math.sin(angle)),
+    lng: lng + (distance * radiusInDegreesLng * Math.cos(angle))
+  };
+}
+
+function distanceKm(lat1, lng1, lat2, lng2){
+  const R = 6371;
+  const dLat = (lat2-lat1) * Math.PI/180;
+  const dLng = (lng2-lng1) * Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 async function loadListings(){
   const { data, error } = await supabaseClient
     .from('listings')
-    .select('id,created_at,name,airport,location,price,availability,description')
+    .select('id,created_at,name,location,lat,lng,price,availability,description')
     .order('created_at', { ascending: false });
 
   if(error){
     console.error('Laden fehlgeschlagen', error);
     return [];
   }
-  // Auf das im Rest des Codes erwartete Format abbilden
   return data.map(row => ({
     id: row.id,
     name: row.name,
-    airport: row.airport,
     location: row.location,
+    lat: row.lat,
+    lng: row.lng,
     price: row.price,
     availability: row.availability,
     description: row.description,
@@ -710,8 +795,9 @@ async function insertListing(listing){
   const { error } = await supabaseClient.from('listings').insert({
     name: listing.name,
     contact: listing.contact,
-    airport: listing.airport,
     location: listing.location,
+    lat: listing.lat,
+    lng: listing.lng,
     price: listing.price,
     availability: listing.availability,
     description: listing.description
@@ -729,13 +815,24 @@ let allListings = [];
 async function renderListings(){
   const grid = document.getElementById('grid');
   const countEl = document.getElementById('resultsCount');
-  const airportFilter = document.getElementById('airportSelect').value;
   const sort = document.getElementById('sortSelect').value;
 
-  let list = allListings.filter(l => !airportFilter || l.airport === airportFilter);
+  let list = allListings.map(l => ({
+    ...l,
+    distance: (searchLocation && l.lat && l.lng)
+      ? distanceKm(searchLocation.lat, searchLocation.lng, l.lat, l.lng)
+      : null
+  }));
+
+  // Bei aktiver Ortssuche: nur Stellplätze im Umkreis von 25 km anzeigen
+  if(searchLocation){
+    list = list.filter(l => l.distance !== null && l.distance <= 25);
+  }
+
   if(sort === 'price-asc') list.sort((a,b)=>a.price-b.price);
-  if(sort === 'price-desc') list.sort((a,b)=>b.price-a.price);
-  if(sort === 'new') list.sort((a,b)=>b.createdAt-a.createdAt);
+  else if(sort === 'price-desc') list.sort((a,b)=>b.price-a.price);
+  else if(sort === 'new') list.sort((a,b)=>b.createdAt-a.createdAt);
+  else if(sort === 'distance' && searchLocation) list.sort((a,b)=>a.distance-b.distance);
 
   countEl.textContent = list.length + (list.length===1 ? ' Stellplatz gefunden' : ' Stellplätze gefunden');
 
@@ -749,24 +846,54 @@ async function renderListings(){
         <circle cx="60" cy="18" r="10" fill="#A6D608"/>
         <text x="60" y="23" font-family="Montserrat, sans-serif" font-weight="800" font-size="13" fill="#3A4A16" text-anchor="middle">P</text>
       </svg>
-      Für diesen Flughafen ist noch kein Stellplatz eingetragen. Trag unten den ersten ein.
+      In dieser Gegend ist noch kein Stellplatz eingetragen. Trag unten den ersten ein.
     </div>`;
-    return;
+  } else {
+    grid.innerHTML = list.map(l => `
+      <div class="card">
+        ${l.distance !== null ? `<span class="tag">${l.distance.toFixed(1)} km entfernt</span>` : ''}
+        <h3>${escapeHtml(l.location)}</h3>
+        <div class="loc">Angeboten von ${escapeHtml(l.name)}</div>
+        <div class="price">${l.price} € <span>/ Tag</span></div>
+        ${l.description ? `<div class="desc">${escapeHtml(l.description)}</div>` : ''}
+        <div class="avail">Verfügbar: ${escapeHtml(l.availability)}</div>
+        <div class="card-actions">
+          <button class="btn-outline" onclick="showInterest('${l.id}')">Interesse melden</button>
+        </div>
+      </div>
+    `).join('');
   }
 
-  grid.innerHTML = list.map(l => `
-    <div class="card">
-      <span class="tag">${l.airport}</span>
-      <h3>${escapeHtml(l.location)}</h3>
-      <div class="loc">Angeboten von ${escapeHtml(l.name)}</div>
-      <div class="price">${l.price} € <span>/ Tag</span></div>
-      ${l.description ? `<div class="desc">${escapeHtml(l.description)}</div>` : ''}
-      <div class="avail">Verfügbar: ${escapeHtml(l.availability)}</div>
-      <div class="card-actions">
-        <button class="btn-outline" onclick="showInterest('${l.id}')">Interesse melden</button>
-      </div>
-    </div>
-  `).join('');
+  updateMapMarkers(list);
+}
+
+function updateMapMarkers(list){
+  if(!resultsMap) return;
+  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers = [];
+
+  const bounds = new google.maps.LatLngBounds();
+  let hasPoints = false;
+
+  list.forEach(l => {
+    if(!l.lat || !l.lng) return;
+    const marker = new google.maps.Marker({
+      position: { lat: l.lat, lng: l.lng },
+      map: resultsMap,
+      title: l.location
+    });
+    const info = new google.maps.InfoWindow({
+      content: `<strong>${escapeHtml(l.location)}</strong><br>${l.price} € / Tag`
+    });
+    marker.addListener('click', () => info.open(resultsMap, marker));
+    mapMarkers.push(marker);
+    bounds.extend(marker.getPosition());
+    hasPoints = true;
+  });
+
+  if(hasPoints){
+    resultsMap.fitBounds(bounds);
+  }
 }
 
 function openModal(id){
@@ -791,7 +918,7 @@ let currentInteresseListing = null;
 
 function showInterest(id){
   currentInteresseListing = allListings.find(l=>l.id===id);
-  document.getElementById('interesseIntro').textContent = 'Trag deine E-Mail-Adresse ein, dann leiten wir dein Interesse an "' + currentInteresseListing.location + '" (' + currentInteresseListing.airport + ') an uns weiter.';
+  document.getElementById('interesseIntro').textContent = 'Trag deine E-Mail-Adresse ein, dann leiten wir dein Interesse an "' + currentInteresseListing.location + '" an uns weiter.';
   document.getElementById('interesseFormView').style.display = 'block';
   document.getElementById('interesseSuccessView').style.display = 'none';
   document.getElementById('interesseForm').reset();
@@ -813,7 +940,6 @@ async function submitInteresse(e){
   const formData = new FormData();
   formData.append('Anfragende E-Mail', email);
   formData.append('Stellplatz', currentInteresseListing.location);
-  formData.append('Flughafen', currentInteresseListing.airport);
   formData.append('Angeboten von', currentInteresseListing.name);
 
   try{
@@ -885,18 +1011,23 @@ async function submitListing(e){
     return false;
   }
 
+  const exactLat = document.getElementById('f-lat').value ? parseFloat(document.getElementById('f-lat').value) : null;
+  const exactLng = document.getElementById('f-lng').value ? parseFloat(document.getElementById('f-lng').value) : null;
+  const jittered = (exactLat && exactLng) ? jitterCoordinates(exactLat, exactLng) : null;
+
   const newListing = {
     name: document.getElementById('f-name').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
-    airport: document.getElementById('f-airport').value,
     location: document.getElementById('f-location').value.trim(),
+    lat: jittered ? jittered.lat : null,
+    lng: jittered ? jittered.lng : null,
     price: parseFloat(document.getElementById('f-price').value),
     availability: availabilityText,
     description: document.getElementById('f-desc').value.trim()
   };
 
-  if(!newListing.airport){
-    msgEl.innerHTML = '<div class="form-msg err">Bitte wähle einen Flughafen aus.</div>';
+  if(!newListing.lat || !newListing.lng){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte wähle die Adresse aus dem Vorschlag der Autovervollständigung aus.</div>';
     return false;
   }
   if(!document.getElementById('f-berechtigt').checked){
@@ -919,8 +1050,8 @@ async function submitListing(e){
 }
 
 (async function init(){
-  populateAirportSelects();
   toggleAvailabilityFields();
+  loadGoogleMapsScript();
   allListings = await loadListings();
   renderListings();
 
