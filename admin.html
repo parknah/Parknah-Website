@@ -61,7 +61,7 @@
   <div class="section">
     <h2 style="font-size:18px;">Stellplatz-Einträge</h2>
     <table id="listingsTable">
-      <thead><tr><th>Name</th><th>Flughafen</th><th>Lage</th><th>Preis</th><th>Verfügbarkeit</th><th>Kontakt</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Lage</th><th>Preis</th><th>Verfügbarkeit</th><th>Kontakt</th><th></th></tr></thead>
       <tbody id="listingsBody"></tbody>
     </table>
   </div>
@@ -114,13 +114,12 @@ async function loadListings(){
   const { data, error } = await supabaseClient.from('listings').select('*').order('created_at', { ascending:false });
   const body = document.getElementById('listingsBody');
   if(error || !data || data.length === 0){
-    body.innerHTML = '<tr><td colspan="7" class="empty">Noch keine Einträge.</td></tr>';
+    body.innerHTML = '<tr><td colspan="6" class="empty">Noch keine Einträge.</td></tr>';
     return;
   }
   body.innerHTML = data.map(l => `
     <tr>
       <td>${escapeHtml(l.name)}</td>
-      <td>${escapeHtml(l.airport)}</td>
       <td>${escapeHtml(l.location)}</td>
       <td>${l.price} €</td>
       <td>${escapeHtml(l.availability)}</td>
@@ -135,7 +134,7 @@ async function loadListings(){
 
 async function editAvailability(id, btn){
   const row = btn.closest('tr');
-  const cell = row.children[4];
+  const cell = row.children[3];
   const current = cell.textContent;
   const neu = prompt('Verfügbarkeit anpassen (z. B. wenn ein Teil des Zeitraums schon vergeben ist):', current);
   if(neu === null || neu.trim() === '') return;
