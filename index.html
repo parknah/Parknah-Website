@@ -229,6 +229,10 @@
   .field input, .field textarea, .field select{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-family:'Inter', sans-serif;font-size:14.5px;background:#fff;color:var(--ink);}
   .field textarea{resize:vertical;min-height:60px;}
   .field input:focus, .field textarea:focus, .field select:focus{outline:2px solid var(--lime);outline-offset:1px;}
+  .avail-toggle{display:flex;gap:20px;margin-top:2px;}
+  .avail-toggle label{display:flex;align-items:center;gap:6px;font-size:14.5px;color:var(--ink);font-weight:500;cursor:pointer;}
+  .weekday-checks{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px;}
+  .weekday-checks label{display:flex;align-items:center;gap:5px;font-size:13.5px;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:6px;padding:6px 10px;cursor:pointer;}
   .checkbox-field{display:flex;gap:10px;align-items:flex-start;margin:16px 0;}
   .checkbox-field input{margin-top:3px;}
   .checkbox-field label{font-size:13px;color:var(--ink-soft);line-height:1.4;}
@@ -414,7 +418,7 @@
         </div>
         <div class="form-row">
           <div class="field"><label for="f-name">Dein Name</label><input id="f-name" required placeholder="z. B. Anna M."></div>
-          <div class="field"><label for="f-contact">Kontakt (E-Mail oder Telefon)</label><input id="f-contact" required placeholder="anna@beispiel.de"></div>
+          <div class="field"><label for="f-contact">E-Mail-Adresse</label><input id="f-contact" type="email" required placeholder="anna@beispiel.de"></div>
         </div>
         <div class="form-row">
           <div class="field">
@@ -424,7 +428,41 @@
           <div class="field"><label for="f-price">Preis pro Tag (€)</label><input id="f-price" type="number" min="1" step="0.5" required placeholder="6"></div>
         </div>
         <div class="field"><label for="f-location">Ungefähre Lage</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
-        <div class="field"><label for="f-availability">Verfügbarkeit</label><input id="f-availability" required placeholder="z. B. jederzeit, oder nur an Wochenenden"></div>
+
+        <div class="field">
+          <label>Verfügbarkeit</label>
+          <div class="avail-toggle">
+            <label><input type="radio" name="f-avail-type" value="einmalig" checked onchange="toggleAvailabilityFields()"> Einmalig</label>
+            <label><input type="radio" name="f-avail-type" value="regelmaessig" onchange="toggleAvailabilityFields()"> Regelmäßig</label>
+          </div>
+        </div>
+
+        <div id="availEinmalig">
+          <div class="form-row">
+            <div class="field"><label for="f-avail-start">Verfügbar von</label><input type="datetime-local" id="f-avail-start" required></div>
+            <div class="field"><label for="f-avail-end">Verfügbar bis</label><input type="datetime-local" id="f-avail-end" required></div>
+          </div>
+        </div>
+
+        <div id="availRegelmaessig" style="display:none;">
+          <div class="field">
+            <label>An welchen Tagen</label>
+            <div class="weekday-checks">
+              <label><input type="checkbox" value="Mo"> Mo</label>
+              <label><input type="checkbox" value="Di"> Di</label>
+              <label><input type="checkbox" value="Mi"> Mi</label>
+              <label><input type="checkbox" value="Do"> Do</label>
+              <label><input type="checkbox" value="Fr"> Fr</label>
+              <label><input type="checkbox" value="Sa"> Sa</label>
+              <label><input type="checkbox" value="So"> So</label>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="field"><label for="f-avail-time-start">Uhrzeit von</label><input type="time" id="f-avail-time-start"></div>
+            <div class="field"><label for="f-avail-time-end">Uhrzeit bis</label><input type="time" id="f-avail-time-end"></div>
+          </div>
+        </div>
+
         <div class="field"><label for="f-desc">Kurzbeschreibung (optional)</label><textarea id="f-desc" placeholder="z. B. eingezäunte Einfahrt, Schlüsselübergabe möglich"></textarea></div>
 
         <div class="checkbox-field">
@@ -743,6 +781,35 @@ function showInterest(id){
 }
 
 
+function toggleAvailabilityFields(){
+  const isEinmalig = document.querySelector('input[name="f-avail-type"]:checked').value === 'einmalig';
+  document.getElementById('availEinmalig').style.display = isEinmalig ? 'block' : 'none';
+  document.getElementById('availRegelmaessig').style.display = isEinmalig ? 'none' : 'block';
+}
+
+function formatDateTime(value){
+  if(!value) return '';
+  const d = new Date(value);
+  return d.toLocaleDateString('de-DE') + ' ' + d.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'});
+}
+
+function buildAvailabilityText(){
+  const type = document.querySelector('input[name="f-avail-type"]:checked').value;
+
+  if(type === 'einmalig'){
+    const start = document.getElementById('f-avail-start').value;
+    const end = document.getElementById('f-avail-end').value;
+    if(!start || !end) return null;
+    return 'Einmalig: ' + formatDateTime(start) + ' – ' + formatDateTime(end);
+  }
+
+  const days = Array.from(document.querySelectorAll('.weekday-checks input:checked')).map(el => el.value);
+  const timeStart = document.getElementById('f-avail-time-start').value;
+  const timeEnd = document.getElementById('f-avail-time-end').value;
+  if(days.length === 0 || !timeStart || !timeEnd) return null;
+  return 'Regelmäßig: ' + days.join(', ') + ', ' + timeStart + '–' + timeEnd + ' Uhr';
+}
+
 async function submitListing(e){
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
@@ -754,13 +821,19 @@ async function submitListing(e){
     return false;
   }
 
+  const availabilityText = buildAvailabilityText();
+  if(!availabilityText){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte fülle die Verfügbarkeit vollständig aus.</div>';
+    return false;
+  }
+
   const newListing = {
     name: document.getElementById('f-name').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
     airport: document.getElementById('f-airport').value,
     location: document.getElementById('f-location').value.trim(),
     price: parseFloat(document.getElementById('f-price').value),
-    availability: document.getElementById('f-availability').value.trim(),
+    availability: availabilityText,
     description: document.getElementById('f-desc').value.trim()
   };
 
@@ -778,6 +851,7 @@ async function submitListing(e){
   if(ok){
     msgEl.innerHTML = '<div class="form-msg ok">Danke! Dein Stellplatz wurde eingetragen und ist jetzt oben in der Liste sichtbar.</div>';
     document.getElementById('listingForm').reset();
+    toggleAvailabilityFields();
     allListings = await loadListings();
     renderListings();
   }else{
