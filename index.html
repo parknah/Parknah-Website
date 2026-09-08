@@ -408,6 +408,10 @@
     <div class="form-card">
       <h3 style="font-size:19px;margin:0 0 16px;font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);">Stellplatz eintragen</h3>
       <form id="listingForm" onsubmit="return submitListing(event)">
+        <div style="position:absolute;left:-9999px;opacity:0;" aria-hidden="true">
+          <label for="f-website">Website (bitte leer lassen)</label>
+          <input type="text" id="f-website" name="website" tabindex="-1" autocomplete="off">
+        </div>
         <div class="form-row">
           <div class="field"><label for="f-name">Dein Name</label><input id="f-name" required placeholder="z. B. Anna M."></div>
           <div class="field"><label for="f-contact">Kontakt (E-Mail oder Telefon)</label><input id="f-contact" required placeholder="anna@beispiel.de"></div>
@@ -492,6 +496,18 @@
 </section>
 
 
+<div class="modal-overlay" id="interesseModal">
+  <div class="modal-box" style="max-width:420px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('interesseModal')" aria-label="Schließen">✕</button>
+    <div style="width:56px;height:56px;border-radius:50%;background:var(--petrol-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="#0A3D3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 10px;">Danke für dein Interesse!</h2>
+    <p id="interesseText" style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 20px;"></p>
+    <button class="btn" style="width:100%;" onclick="closeModal('interesseModal')">Alles klar</button>
+  </div>
+</div>
+
 <div class="modal-overlay" id="impressum">
   <div class="modal-box">
     <button class="modal-close" onclick="closeModal('impressum')" aria-label="Schließen">✕</button>
@@ -500,14 +516,14 @@
     <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Verantwortlich für den Inhalt</h3>
     <p style="font-size:14.5px;color:var(--ink-soft);">
       Sina Bachmann &amp; Stefanie Tremmel<br>
-      <span class="placeholder">[Straße und Hausnummer einsetzen – gesetzlich zwingend erforderlich]</span><br>
-      <span class="placeholder">[PLZ und Ort einsetzen – gesetzlich zwingend erforderlich]</span><br>
+      Thurasdorf 2a<br>
+      94344 Wiesenfelden<br>
       Deutschland
     </p>
     <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Kontakt</h3>
     <p style="font-size:14.5px;color:var(--ink-soft);">
       Telefon: 0151 46352220<br>
-      E-Mail: <span class="placeholder">[E-Mail-Adresse einsetzen – gesetzlich erforderlich für schnelle elektronische Kontaktaufnahme]</span>
+      E-Mail: info.parknah@gmail.com
     </p>
     <h3 style="font-size:15px;font-weight:700;margin:18px 0 6px;">Hinweis zur Testphase</h3>
     <p style="font-size:14.5px;color:var(--ink-soft);">Parknah befindet sich aktuell in der Test- und Validierungsphase. Es findet noch keine automatisierte Buchung oder Zahlungsabwicklung über diese Seite statt.</p>
@@ -573,7 +589,7 @@ function populateAirportSelects(){
 async function loadListings(){
   const { data, error } = await supabaseClient
     .from('listings')
-    .select('*')
+    .select('id,created_at,name,airport,location,price,availability,description')
     .order('created_at', { ascending: false });
 
   if(error){
@@ -584,7 +600,6 @@ async function loadListings(){
   return data.map(row => ({
     id: row.id,
     name: row.name,
-    contact: row.contact,
     airport: row.airport,
     location: row.location,
     price: row.price,
@@ -677,13 +692,22 @@ function escapeHtml(str){
 
 function showInterest(id){
   const listing = allListings.find(l=>l.id===id);
-  alert('Danke für dein Interesse! In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.');
+  document.getElementById('interesseText').textContent = 'In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.';
+  openModal('interesseModal');
 }
 
 
 async function submitListing(e){
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
+
+  // Spam-Schutz: Bots füllen versteckte Felder oft automatisch aus
+  if(document.getElementById('f-website').value.trim() !== ''){
+    msgEl.innerHTML = '<div class="form-msg ok">Danke! Dein Stellplatz wurde eingetragen und ist jetzt oben in der Liste sichtbar.</div>';
+    document.getElementById('listingForm').reset();
+    return false;
+  }
+
   const newListing = {
     name: document.getElementById('f-name').value.trim(),
     contact: document.getElementById('f-contact').value.trim(),
