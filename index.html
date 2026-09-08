@@ -271,6 +271,11 @@
   .checkbox-field input{margin-top:3px;}
   .checkbox-field label{font-size:13px;color:var(--ink-soft);line-height:1.4;}
   .hint{font-size:12px;color:var(--ink-soft);margin-top:-8px;margin-bottom:14px;line-height:1.5;}
+  .price-suggestion{margin-top:8px;font-size:13px;color:var(--petrol);background:var(--petrol-soft);padding:8px 12px;border-radius:8px;display:none;align-items:center;justify-content:space-between;gap:10px;}
+  .price-suggestion.visible{display:flex;}
+  .price-suggestion button{background:var(--petrol);color:#fff;border:none;padding:5px 10px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+  .feature-tags{display:flex;gap:6px;flex-wrap:wrap;margin:2px 0;}
+  .feature-tag{font-size:11.5px;background:var(--petrol-soft);color:var(--petrol);padding:3px 8px;border-radius:999px;font-weight:600;}
   .form-msg{margin-top:12px;font-size:14px;padding:10px 12px;border-radius:8px;}
   .form-msg.ok{background:#DCEAE4;color:#20493D;}
   .form-msg.err{background:#F6DFD8;color:var(--danger);}
@@ -471,9 +476,30 @@
           <input type="hidden" id="f-lat">
           <input type="hidden" id="f-lng">
         </div>
+        <div class="field"><label for="f-location">Ungefähre Lage (öffentlich sichtbar)</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
+
         <div class="form-row">
-          <div class="field"><label for="f-location">Ungefähre Lage (öffentlich sichtbar)</label><input id="f-location" required placeholder="z. B. Köln-Ensen, 8 Min. zum Terminal"></div>
-          <div class="field"><label for="f-price">Preis pro Tag (€)</label><input id="f-price" type="number" min="1" step="0.5" required placeholder="6"></div>
+          <div class="field">
+            <label for="f-type">Art des Stellplatzes</label>
+            <select id="f-type" onchange="updatePriceSuggestion()">
+              <option value="Freier Stellplatz">Freier Stellplatz</option>
+              <option value="Carport">Carport</option>
+              <option value="Garage">Garage</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Ausstattung</label>
+            <div class="avail-toggle" style="margin-top:8px;">
+              <label><input type="checkbox" id="f-covered" onchange="updatePriceSuggestion()"> Überdacht</label>
+              <label><input type="checkbox" id="f-monitored" onchange="updatePriceSuggestion()"> Videoüberwacht</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="f-price">Preis pro Tag (€)</label>
+          <input id="f-price" type="number" min="1" step="0.5" required placeholder="6">
+          <div id="priceSuggestion" class="price-suggestion"></div>
         </div>
 
         <div class="field">
@@ -806,6 +832,7 @@ function initAutocompletes(){
     setupAddressAutocomplete('f-address', 'f-addressList', (place) => {
       document.getElementById('f-lat').value = place.lat;
       document.getElementById('f-lng').value = place.lng;
+      updatePriceSuggestion();
     });
   }
 }
@@ -821,6 +848,38 @@ function initResultsMap(){
 // Entfernung in km zwischen zwei Koordinaten (Haversine-Formel)
 // Verschiebt eine Koordinate zufällig um bis zu maxMeters (Datenschutz:
 // die exakte Adresse soll nie öffentlich/auf der Karte sichtbar sein)
+// ---- Einfache Faustregel für einen Preisvorschlag (keine KI, transparent) ----
+const TYPE_MULTIPLIER = { "Freier Stellplatz": 1, "Carport": 1.1, "Garage": 1.25 };
+const DEFAULT_BASE_PRICE = 5; // € pro Tag, falls noch keine Vergleichswerte in der Nähe existieren
+
+function updatePriceSuggestion(){
+  const suggestionEl = document.getElementById('priceSuggestion');
+  const lat = document.getElementById('f-lat').value ? parseFloat(document.getElementById('f-lat').value) : null;
+  const lng = document.getElementById('f-lng').value ? parseFloat(document.getElementById('f-lng').value) : null;
+
+  // Basis: Durchschnittspreis bestehender Stellplätze im Umkreis von 10 km,
+  // sonst ein fester Startwert
+  let base = DEFAULT_BASE_PRICE;
+  if(lat && lng && allListings.length > 0){
+    const nearby = allListings.filter(l => l.lat && l.lng && distanceKm(lat, lng, l.lat, l.lng) <= 10);
+    if(nearby.length > 0){
+      base = nearby.reduce((sum, l) => sum + l.price, 0) / nearby.length;
+    }
+  }
+
+  const type = document.getElementById('f-type').value;
+  const covered = document.getElementById('f-covered').checked;
+  const monitored = document.getElementById('f-monitored').checked;
+
+  let suggested = base * (TYPE_MULTIPLIER[type] || 1);
+  if(covered) suggested *= 1.1;
+  if(monitored) suggested *= 1.15;
+  suggested = Math.round(suggested * 2) / 2; // auf 0,50 € runden
+
+  suggestionEl.classList.add('visible');
+  suggestionEl.innerHTML = `<span>💡 Vorschlag: ca. ${suggested.toFixed(2)} € / Tag</span><button type="button" onclick="document.getElementById('f-price').value='${suggested}'">Übernehmen</button>`;
+}
+
 function jitterCoordinates(lat, lng, maxMeters = 150){
   const radiusInDegreesLat = maxMeters / 111320;
   const radiusInDegreesLng = maxMeters / (111320 * Math.cos(lat * Math.PI/180));
@@ -845,7 +904,7 @@ function distanceKm(lat1, lng1, lat2, lng2){
 async function loadListings(){
   const { data, error } = await supabaseClient
     .from('listings')
-    .select('id,created_at,name,location,lat,lng,price,availability,description')
+    .select('id,created_at,name,location,lat,lng,price,availability,description,spot_type,covered,monitored')
     .order('created_at', { ascending: false });
 
   if(error){
@@ -861,6 +920,9 @@ async function loadListings(){
     price: row.price,
     availability: row.availability,
     description: row.description,
+    spotType: row.spot_type,
+    covered: row.covered,
+    monitored: row.monitored,
     createdAt: new Date(row.created_at).getTime()
   }));
 }
@@ -875,7 +937,10 @@ async function insertListing(listing){
     price: listing.price,
     availability: listing.availability,
     description: listing.description,
-    owner_id: currentUser.id
+    owner_id: currentUser.id,
+    spot_type: listing.spot_type,
+    covered: listing.covered,
+    monitored: listing.monitored
   });
 
   if(error){
@@ -929,6 +994,11 @@ async function renderListings(){
         ${l.distance !== null ? `<span class="tag">${l.distance.toFixed(1)} km entfernt</span>` : ''}
         <h3>${escapeHtml(l.location)}</h3>
         <div class="loc">Angeboten von ${escapeHtml(l.name)}</div>
+        <div class="feature-tags">
+          ${l.spotType ? `<span class="feature-tag">${escapeHtml(l.spotType)}</span>` : ''}
+          ${l.covered ? `<span class="feature-tag">Überdacht</span>` : ''}
+          ${l.monitored ? `<span class="feature-tag">Videoüberwacht</span>` : ''}
+        </div>
         <div class="price">${l.price} € <span>/ Tag</span></div>
         ${l.description ? `<div class="desc">${escapeHtml(l.description)}</div>` : ''}
         <div class="avail">Verfügbar: ${escapeHtml(l.availability)}</div>
@@ -1218,7 +1288,10 @@ async function submitListing(e){
     lng: jittered ? jittered.lng : null,
     price: parseFloat(document.getElementById('f-price').value),
     availability: availabilityText,
-    description: document.getElementById('f-desc').value.trim()
+    description: document.getElementById('f-desc').value.trim(),
+    spot_type: document.getElementById('f-type').value,
+    covered: document.getElementById('f-covered').checked,
+    monitored: document.getElementById('f-monitored').checked
   };
 
   if(!newListing.lat || !newListing.lng){
