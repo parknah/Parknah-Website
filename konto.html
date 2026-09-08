@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mein Konto – Parknah</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F6F3EE; --surface:#FFFFFF; --ink:#10201D; --ink-soft:#52605C;
+    --line:#DEDCD2; --petrol:#0A3D3A; --petrol-soft:#E4ECEA;
+    --lime:#A6D608; --lime-ink:#3A4A16; --danger:#A1442E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  .wrap{max-width:760px;margin:0 auto;padding:32px 20px 64px;}
+  header{display:flex;align-items:center;justify-content:space-between;padding:22px 20px;background:var(--bg);}
+  header img{height:40px;}
+  a.back{color:var(--petrol);font-size:14px;font-weight:600;text-decoration:none;}
+  h1{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:24px;margin:0 0 6px;}
+  h2{font-family:'Montserrat',sans-serif;font-weight:700;color:var(--petrol);font-size:17px;margin:36px 0 12px;}
+  .login-box{max-width:380px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;}
+  .field{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .field input{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14.5px;}
+  .btn{background:var(--petrol);color:#fff;border:none;font-size:15px;font-weight:600;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;}
+  .btn:hover{background:#082e2b;}
+  .btn.lime{background:var(--lime);color:var(--lime-ink);}
+  .msg{margin-top:10px;font-size:14px;padding:8px 10px;border-radius:8px;}
+  .msg.err{background:#F6DFD8;color:var(--danger);}
+  .msg.ok{background:#DCEAE4;color:#20493D;}
+  .toggle-text{font-size:13.5px;color:var(--ink-soft);margin-top:16px;text-align:center;}
+  .toggle-text a{color:var(--petrol);font-weight:600;cursor:pointer;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:12px;}
+  .card .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+  .card h3{font-size:15.5px;margin:0 0 4px;}
+  .card .meta{font-size:13.5px;color:var(--ink-soft);}
+  .status{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;}
+  .status.angefragt{background:#FFF3D6;color:#8A6417;}
+  .status.bestaetigt{background:#DCEAE4;color:#20493D;}
+  .status.abgelehnt{background:#F6DFD8;color:var(--danger);}
+  .card-actions{display:flex;gap:8px;margin-top:12px;}
+  .btn-sm{font-size:13px;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;font-weight:600;}
+  .btn-sm.confirm{background:var(--petrol);color:#fff;}
+  .btn-sm.decline{background:transparent;border:1px solid var(--danger);color:var(--danger);}
+  .empty{color:var(--ink-soft);font-size:14px;padding:10px 0;}
+  .logout{background:transparent;border:1px solid var(--line);padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13.5px;}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="favicon.png" alt="Parknah">
+  <a class="back" href="index.html">← Zurück zur Website</a>
+</header>
+
+<div id="loginView" class="wrap">
+  <div class="login-box">
+    <h1 id="authTitle" style="font-size:20px;">Anmelden</h1>
+    <form id="authForm" onsubmit="return submitAuth(event)">
+      <div class="field"><label>E-Mail</label><input id="auth-email" type="email" required></div>
+      <div class="field"><label>Passwort</label><input id="auth-password" type="password" required minlength="6"></div>
+      <button class="btn" type="submit" id="authSubmitBtn">Anmelden</button>
+      <div id="authMsg"></div>
+    </form>
+    <p class="toggle-text">
+      <span id="authToggleText">Noch kein Konto?</span>
+      <a onclick="toggleAuthMode()"><span id="authToggleLink">Jetzt registrieren</span></a>
+    </p>
+  </div>
+</div>
+
+<div id="accountView" class="wrap" style="display:none;">
+  <div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1>Mein Konto</h1>
+    <button class="logout" onclick="doLogout()">Abmelden</button>
+  </div>
+  <p style="color:var(--ink-soft);font-size:14px;" id="userEmailLine"></p>
+
+  <h2>Anfragen für deine Stellplätze</h2>
+  <div id="hostBookings"><div class="empty">Wird geladen …</div></div>
+
+  <h2>Deine Buchungsanfragen</h2>
+  <div id="myBookings"><div class="empty">Wird geladen …</div></div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://efjmifphnuqnvaxylmay.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let authMode = 'login';
+let currentUser = null;
+
+const statusLabels = { angefragt: 'Angefragt', bestaetigt: 'Bestätigt', abgelehnt: 'Abgelehnt' };
+
+function toggleAuthMode(){
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  const isLogin = authMode === 'login';
+  document.getElementById('authTitle').textContent = isLogin ? 'Anmelden' : 'Konto erstellen';
+  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Anmelden' : 'Registrieren';
+  document.getElementById('authToggleText').textContent = isLogin ? 'Noch kein Konto?' : 'Schon ein Konto?';
+  document.getElementById('authToggleLink').textContent = isLogin ? 'Jetzt registrieren' : 'Jetzt anmelden';
+}
+
+async function submitAuth(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('authMsg');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+
+  const { data, error } = authMode === 'login'
+    ? await supabaseClient.auth.signInWithPassword({ email, password })
+    : await supabaseClient.auth.signUp({ email, password });
+
+  if(error){
+    msgEl.innerHTML = '<div class="msg err">' + (authMode === 'login' ? 'Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.' : 'Registrierung fehlgeschlagen: ' + error.message) + '</div>';
+    return false;
+  }
+  currentUser = data.user;
+  showAccount();
+  return false;
+}
+
+async function doLogout(){
+  await supabaseClient.auth.signOut();
+  location.reload();
+}
+
+async function showAccount(){
+  document.getElementById('loginView').style.display = 'none';
+  document.getElementById('accountView').style.display = 'block';
+  document.getElementById('userEmailLine').textContent = currentUser.email;
+  await loadHostBookings();
+  await loadMyBookings();
+}
+
+async function loadHostBookings(){
+  const el = document.getElementById('hostBookings');
+  const { data: myListings, error: listErr } = await supabaseClient
+    .from('listings').select('id, location, price').eq('owner_id', currentUser.id);
+
+  if(listErr || !myListings || myListings.length === 0){
+    el.innerHTML = '<div class="empty">Du hast noch keine eigenen Stellplätze eingetragen.</div>';
+    return;
+  }
+
+  const listingIds = myListings.map(l => l.id);
+  const { data: bookings, error } = await supabaseClient
+    .from('bookings').select('*').in('listing_id', listingIds).order('created_at', { ascending: false });
+
+  if(error || !bookings || bookings.length === 0){
+    el.innerHTML = '<div class="empty">Noch keine Buchungsanfragen für deine Stellplätze.</div>';
+    return;
+  }
+
+  const listingById = Object.fromEntries(myListings.map(l => [l.id, l]));
+
+  el.innerHTML = bookings.map(b => {
+    const listing = listingById[b.listing_id] || {};
+    return `
+    <div class="card">
+      <div class="top">
+        <div>
+          <h3>${escapeHtml(listing.location || 'Stellplatz')}</h3>
+          <div class="meta">${b.start_date} – ${b.end_date}<br>Anfragende E-Mail: ${escapeHtml(b.requester_email)}</div>
+        </div>
+        <span class="status ${b.status}">${statusLabels[b.status] || b.status}</span>
+      </div>
+      ${b.status === 'angefragt' ? `
+        <div class="card-actions">
+          <button class="btn-sm confirm" onclick="updateBookingStatus('${b.id}','bestaetigt')">Bestätigen</button>
+          <button class="btn-sm decline" onclick="updateBookingStatus('${b.id}','abgelehnt')">Ablehnen</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+async function loadMyBookings(){
+  const el = document.getElementById('myBookings');
+  const { data: bookings, error } = await supabaseClient
+    .from('bookings').select('*, listings(location, price)').eq('requester_id', currentUser.id).order('created_at', { ascending: false });
+
+  if(error || !bookings || bookings.length === 0){
+    el.innerHTML = '<div class="empty">Du hast noch keine Buchungsanfragen gestellt.</div>';
+    return;
+  }
+
+  el.innerHTML = bookings.map(b => `
+    <div class="card">
+      <div class="top">
+        <div>
+          <h3>${escapeHtml(b.listings ? b.listings.location : 'Stellplatz')}</h3>
+          <div class="meta">${b.start_date} – ${b.end_date}</div>
+        </div>
+        <span class="status ${b.status}">${statusLabels[b.status] || b.status}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function updateBookingStatus(id, status){
+  const { error } = await supabaseClient.from('bookings').update({ status }).eq('id', id);
+  if(error){
+    alert('Speichern fehlgeschlagen: ' + error.message);
+    return;
+  }
+  loadHostBookings();
+}
+
+function escapeHtml(str){
+  const d = document.createElement('div');
+  d.textContent = str ?? '';
+  return d.innerHTML;
+}
+
+(async function init(){
+  const { data } = await supabaseClient.auth.getSession();
+  if(data.session){
+    currentUser = data.session.user;
+    showAccount();
+  }
+})();
+</script>
+
+</body>
+</html>
