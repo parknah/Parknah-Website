@@ -105,10 +105,10 @@
   .pill{border-radius:999px !important;padding:16px 34px !important;font-weight:700 !important;font-size:15.5px !important;}
   .outline-white{background:transparent;color:#fff;border:1.5px solid #fff;}
   .outline-white:hover{background:rgba(255,255,255,0.12);}
-  .ticket-wrap{position:relative;z-index:2;transform:translateY(50%);}
+  .ticket-wrap{position:relative;z-index:3;margin-top:-58px;margin-bottom:40px;}
 
   /* Intro-Strip: 'Parkplatz gesucht?' */
-  .intro-strip{background:var(--petrol-soft);padding:112px 0 48px;}
+  .intro-strip{background:var(--petrol-soft);padding:56px 0 48px;}
   .intro-strip-wrap{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center;}
   .intro-photo{width:220px;height:150px;object-fit:cover;border-radius:14px;box-shadow:0 14px 30px rgba(10,61,58,0.18);}
   .intro-strip h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:30px;color:var(--ink);margin:0 0 12px;}
@@ -118,7 +118,7 @@
   @media (max-width:720px){
     .hero-content h1{font-size:30px;}
     .hero-full{min-height:560px;}
-    .ticket-wrap{transform:translateY(30%);}
+    .ticket-wrap{margin-top:-40px;}
   }
 
   /* Ticket-style search bar */
@@ -331,29 +331,29 @@
       <button class="btn outline-white pill" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</button>
     </div>
   </div>
+</section>
 
-  <div class="wrap ticket-wrap">
-    <div class="ticket">
-      <div class="ticket-field">
-        <label for="airportSelect">Flughafen</label>
-        <select id="airportSelect" onchange="renderListings()">
-          <option value="">Alle Flughäfen</option>
-        </select>
-      </div>
-      <div class="ticket-field">
-        <label for="sortSelect">Sortieren</label>
-        <select id="sortSelect" onchange="renderListings()">
-          <option value="price-asc">Preis: aufsteigend</option>
-          <option value="price-desc">Preis: absteigend</option>
-          <option value="new">Neueste zuerst</option>
-        </select>
-      </div>
-      <div class="ticket-submit">
-        <button class="btn" onclick="renderListings()">Suchen</button>
-      </div>
+<div class="wrap ticket-wrap">
+  <div class="ticket">
+    <div class="ticket-field">
+      <label for="airportSelect">Flughafen</label>
+      <select id="airportSelect" onchange="renderListings()">
+        <option value="">Alle Flughäfen</option>
+      </select>
+    </div>
+    <div class="ticket-field">
+      <label for="sortSelect">Sortieren</label>
+      <select id="sortSelect" onchange="renderListings()">
+        <option value="price-asc">Preis: aufsteigend</option>
+        <option value="price-desc">Preis: absteigend</option>
+        <option value="new">Neueste zuerst</option>
+      </select>
+    </div>
+    <div class="ticket-submit">
+      <button class="btn" onclick="renderListings()">Suchen</button>
     </div>
   </div>
-</section>
+</div>
 
 <section class="intro-strip">
   <div class="wrap intro-strip-wrap">
