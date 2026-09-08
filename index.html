@@ -17,6 +17,7 @@
     --ink-soft: #52605C;
     --line: #DEDCD2;
     --petrol: #0A3D3A;
+    --petrol-deep: #072925;
     --petrol-soft: #E4ECEA;
     --lime: #A6D608;
     --lime-ink: #3A4A16;
@@ -33,83 +34,102 @@
   a{color:inherit;}
   .wrap{max-width:1080px;margin:0 auto;padding:0 28px;}
 
-  /* Header */
+  /* Header: solide Leiste über dem Hero */
   header{
+    background:var(--bg);
     padding:22px 0;
-    border-bottom:1px solid var(--line);
   }
   header .wrap{display:flex;align-items:center;justify-content:space-between;}
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:12px;
-  }
-  .brand .wordmark{
-    font-family:'Montserrat', sans-serif;
-    font-weight:800;
-    font-size:22px;
-    letter-spacing:0.01em;
-    color:var(--petrol);
-    text-transform:uppercase;
-    display:flex;
-    align-items:center;
-  }
-  .brand .wordmark .dot{
-    display:inline-block;
-    width:6px;height:6px;
-    border-radius:50%;
-    background:var(--lime);
-    margin:0 6px;
-  }
-  .logo-img{height:52px;width:auto;display:block;}
-  .brand svg{display:block;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .logo-mark{height:44px;width:auto;display:block;}
   .nav-link{
     font-size:15px;
     font-weight:600;
     text-decoration:none;
-    border-bottom:2px solid var(--lime);
-    padding-bottom:2px;
+    color:var(--petrol);
     cursor:pointer;
+    padding-bottom:2px;
+    border-bottom:1px solid var(--petrol);
   }
 
-  /* Hero */
-  .hero{padding:60px 0 36px;}
-  .hero h1{
+  /* Hero: großflächiges Foto mit zweifarbiger Überschrift */
+  .hero-full{
+    position:relative;
+    min-height:600px;
+    display:flex;
+    flex-direction:column;
+    color:#fff;
+    background:var(--petrol-deep);
+    overflow:hidden;
+  }
+  .hero-bg{
+    position:absolute;inset:0;
+    width:100%;height:100%;
+    object-fit:cover;
+    opacity:0;
+    transform:scale(1.06);
+    transition:opacity 1.4s ease, transform 1.8s ease;
+  }
+  .hero-bg.visible{opacity:1;transform:scale(1);}
+  .hero-overlay{
+    position:absolute;inset:0;
+    background:linear-gradient(90deg, rgba(7,41,37,0.72) 0%, rgba(7,41,37,0.45) 42%, rgba(7,41,37,0.12) 75%);
+  }
+  .hero-content{
+    position:relative;z-index:2;
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    padding:40px 0 70px;
+  }
+  .hero-content h1{
     font-family:'Montserrat', sans-serif;
     font-weight:800;
-    font-size:40px;
-    line-height:1.18;
+    font-size:48px;
+    line-height:1.12;
     max-width:640px;
-    letter-spacing:-0.01em;
-    color:var(--petrol);
+    letter-spacing:-0.015em;
+    color:#fff;
     margin:0;
   }
-  .hero .tagline{
-    display:inline-block;
-    margin-top:16px;
-    font-size:14px;
-    font-weight:600;
-    color:var(--lime-ink);
-    background:var(--lime);
-    padding:5px 12px;
-    border-radius:999px;
-  }
-  .hero p.lead{
-    max-width:520px;
+  .hero-content h1 .lime-text{color:var(--lime);}
+  .hero-content .lead{
+    max-width:480px;
     font-size:17px;
-    color:var(--ink-soft);
-    margin-top:18px;
+    color:rgba(255,255,255,0.9);
+    margin-top:22px;
+  }
+  .hero-content .lead strong{color:#fff;}
+  .hero-ctas{display:flex;flex-direction:column;align-items:flex-start;gap:14px;margin-top:32px;}
+  .pill{border-radius:999px !important;padding:16px 34px !important;font-weight:700 !important;font-size:15.5px !important;}
+  .outline-white{background:transparent;color:#fff;border:1.5px solid #fff;}
+  .outline-white:hover{background:rgba(255,255,255,0.12);}
+  .ticket-wrap{position:relative;z-index:2;transform:translateY(50%);}
+
+  /* Intro-Strip: 'Parkplatz gesucht?' */
+  .intro-strip{background:var(--petrol-soft);padding:112px 0 48px;}
+  .intro-strip-wrap{display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center;}
+  .intro-photo{width:220px;height:150px;object-fit:cover;border-radius:14px;box-shadow:0 14px 30px rgba(10,61,58,0.18);}
+  .intro-strip h2{font-family:'Montserrat', sans-serif;font-weight:800;font-size:30px;color:var(--ink);margin:0 0 12px;}
+  .intro-strip p{font-size:15.5px;color:var(--ink-soft);line-height:1.6;margin:0;}
+  .intro-strip p strong{color:var(--petrol);}
+  @media (max-width:640px){.intro-strip-wrap{grid-template-columns:1fr;text-align:left;} .intro-photo{width:100%;height:180px;}}
+  @media (max-width:720px){
+    .hero-content h1{font-size:30px;}
+    .hero-full{min-height:560px;}
+    .ticket-wrap{transform:translateY(30%);}
   }
 
   /* Ticket-style search bar */
   .ticket{
-    margin-top:34px;
     background:var(--surface);
     border:1px solid var(--line);
     border-radius:14px;
     display:flex;
     align-items:stretch;
     position:relative;
+    box-shadow:0 24px 48px rgba(7,41,37,0.22);
   }
   .ticket::before, .ticket::after{
     content:"";
@@ -155,10 +175,31 @@
     .hero h1{font-size:30px;}
   }
 
+  /* Vorteile für Suchende (4 Spalten) */
+  .benefits4{padding:64px 0;}
+  .benefits4-wrap{display:grid;grid-template-columns:1.1fr 1fr;gap:56px;align-items:center;}
+  .benefits4-photo{width:100%;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.16);}
+  .benefits4-list{display:flex;flex-direction:column;gap:20px;}
+  .benefits4-list h4{font-family:'Montserrat', sans-serif;font-weight:800;font-size:18px;color:var(--petrol);margin:0 0 4px;}
+  .benefits4-list p{font-size:14.5px;color:var(--ink-soft);margin:0;}
+  @media (max-width:760px){.benefits4-wrap{grid-template-columns:1fr;} .benefits4-photo{order:-1;}}
+
   /* So funktioniert's */
-  .howworks{padding:12px 0 8px;}
+  .howworks{padding:56px 0 8px;}
   .section-title{font-family:'Montserrat', sans-serif;font-weight:800;font-size:26px;color:var(--petrol);text-align:center;margin:0 0 32px;}
-  .how-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:28px;}
+  .how-grid{display:grid;gap:28px;}
+  .how-grid-4{grid-template-columns:repeat(4,1fr);}
+  .section-sub{text-align:center;color:var(--ink-soft);font-size:15px;max-width:480px;margin:-24px auto 36px;}
+  @media (max-width:800px){.how-grid-4{grid-template-columns:1fr 1fr;}}
+
+  /* About */
+  .about{padding:72px 0;}
+  .about-wrap{display:grid;grid-template-columns:1fr 1.3fr;gap:48px;align-items:center;}
+  .about-photo{width:100%;border-radius:8px;display:block;}
+  .about h2{margin-bottom:16px;}
+  .about p{font-size:15.5px;color:var(--ink-soft);line-height:1.7;}
+  @media (max-width:720px){.about-wrap{grid-template-columns:1fr;}}
+
   .how-item{text-align:center;}
   .how-item svg{width:88px;height:88px;margin-bottom:14px;}
   .how-item h3{font-family:'Montserrat', sans-serif;font-weight:800;font-size:16px;color:var(--petrol);margin:0 0 6px;}
@@ -265,10 +306,17 @@
   .card:hover{transform:translateY(-4px);box-shadow:0 10px 24px rgba(10,61,58,0.10);}
   .btn, .btn-outline{transition:transform 0.15s ease, background 0.2s ease;}
   .btn:active, .btn-outline:active{transform:scale(0.97);}
-  .hero-photo{width:100%;max-width:480px;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.14);}
-  .offer-photo{width:100%;max-width:320px;border-radius:14px;margin-top:28px;display:block;box-shadow:0 16px 32px rgba(10,61,58,0.12);}
+  .photo-reveal{
+    opacity:0;
+    transform:translateY(36px) scale(1.03);
+    transition:opacity 1.1s cubic-bezier(0.16,1,0.3,1), transform 1.1s cubic-bezier(0.16,1,0.3,1);
+  }
+  .photo-reveal.visible{opacity:1;transform:translateY(0) scale(1);}
+  .offer-photo{width:100%;max-width:320px;border-radius:14px;margin-top:28px;display:block;box-shadow:0 16px 32px rgba(10,61,58,0.12);transition:transform 0.4s ease, box-shadow 0.4s ease;}
+  .offer-photo:hover{transform:scale(1.02);box-shadow:0 20px 40px rgba(10,61,58,0.18);}
   .photo-banner{padding:8px 0;}
-  .banner-photo{width:100%;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.12);}
+  .banner-photo{width:100%;border-radius:16px;display:block;box-shadow:0 20px 40px rgba(10,61,58,0.12);transition:transform 0.5s ease;}
+  .banner-photo:hover{transform:scale(1.01);}
   .empty-illustration{width:120px;margin:0 auto 14px;display:block;}
   @keyframes logoIn{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
 </style>
@@ -278,20 +326,26 @@
 <header>
   <div class="wrap">
     <div class="brand">
-      <img src="logo.png" alt="Parknah" class="logo-img">
+      <img src="favicon.png" alt="Parknah" class="logo-mark">
     </div>
     <a class="nav-link" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</a>
   </div>
 </header>
 
-<section class="hero">
-  <div class="wrap">
-    <h1>Dein Auto steht günstiger als im Parkhaus – direkt bei jemandem in der Nähe.</h1>
-    <span class="tagline">Parknah – Dein Platz. Einfach da.</span>
-    <p class="lead">Parknah verbindet Reisende mit privaten Stellplätzen nahe deutschen Flughäfen. Kein Parkhaus-Aufpreis, keine endlosen Nachrichten – nur echte Nachbarn mit einer freien Einfahrt.</p>
+<section class="hero-full">
+  <img src="photo-3.jpg" alt="Private Stellplätze vor Wohngebäude" class="hero-bg photo-reveal">
+  <div class="hero-overlay"></div>
 
-    <img src="photo-1.jpg" alt="Private Parkplatz-Tiefgarage mit Petrol-Akzentwand" class="hero-photo">
+  <div class="hero-content wrap">
+    <h1>Dein Parkplatz.<br><span class="lime-text">Genau da,<br>wo du ihn brauchst.</span></h1>
+    <p class="lead">Parknah verbindet <strong>freie private Stellplätze</strong> mit Menschen, die genau dort einen Parkplatz suchen.</p>
+    <div class="hero-ctas">
+      <button class="btn lime pill" onclick="document.getElementById('ergebnisse').scrollIntoView({behavior:'smooth'})">Parkplatz finden</button>
+      <button class="btn outline-white pill" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</button>
+    </div>
+  </div>
 
+  <div class="wrap ticket-wrap">
     <div class="ticket">
       <div class="ticket-field">
         <label for="airportSelect">Flughafen</label>
@@ -314,53 +368,32 @@
   </div>
 </section>
 
-<section class="howworks fade-up">
-  <div class="wrap">
-    <h2 class="section-title">So funktioniert Parknah</h2>
-    <div class="how-grid">
-      <div class="how-item">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
-          <path d="M50 24 C36 24 28 34 28 46 C28 60 50 78 50 78 C50 78 72 60 72 46 C72 34 64 24 50 24 Z" fill="#0A3D3A"/>
-          <circle cx="50" cy="46" r="10" fill="#A6D608"/>
-        </svg>
-        <h3>Suchen</h3>
-        <p>Flughafen auswählen und passende private Stellplätze in der Nähe finden.</p>
-      </div>
-      <div class="how-item">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
-          <rect x="26" y="38" width="48" height="34" rx="6" fill="#0A3D3A"/>
-          <rect x="26" y="30" width="48" height="10" rx="4" fill="#A6D608"/>
-          <circle cx="38" cy="55" r="4" fill="#fff"/>
-          <circle cx="50" cy="55" r="4" fill="#fff"/>
-          <circle cx="62" cy="55" r="4" fill="#fff"/>
-        </svg>
-        <h3>Kontakt aufnehmen</h3>
-        <p>Direkt mit der Person in Kontakt treten, die den Stellplatz anbietet.</p>
-      </div>
-      <div class="how-item">
-        <svg viewBox="0 0 100 100" aria-hidden="true">
-          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
-          <rect x="24" y="52" width="52" height="20" rx="6" fill="#0A3D3A"/>
-          <circle cx="36" cy="72" r="7" fill="#10201D"/>
-          <circle cx="64" cy="72" r="7" fill="#10201D"/>
-          <path d="M30 52 L38 34 L62 34 L70 52 Z" fill="#A6D608"/>
-        </svg>
-        <h3>Parken</h3>
-        <p>Ankommen und direkt auf dem vereinbarten Stellplatz parken – fertig.</p>
+<section class="intro-strip">
+  <div class="wrap intro-strip-wrap">
+    <img src="photo-1.jpg" alt="Straße mit parkenden Autos" class="intro-photo">
+    <div>
+      <h2>Parkplatz gesucht?</h2>
+      <p>Kein Parkplatz in Sicht? Dabei ist vielleicht schon einer ganz in der Nähe frei.<br><strong>Parknah macht private Stellplätze sichtbar und bringt sie dorthin, wo sie gebraucht werden.</strong></p>
+    </div>
+  </div>
+</section>
+
+<section class="benefits4">
+  <div class="wrap benefits4-wrap">
+    <img src="photo-2.jpg" alt="Moderne private Garage" class="benefits4-photo photo-reveal">
+    <div>
+      <h2 class="section-title" style="text-align:left;margin-bottom:28px;">Parken, wo du hinwillst.</h2>
+      <div class="benefits4-list">
+        <div><h4>Nähe</h4><p>Parkplätze direkt in der Nähe deines Ziels.</p></div>
+        <div><h4>Verfügbarkeit</h4><p>Sieh, wann Stellplätze frei sind.</p></div>
+        <div><h4>Wahl</h4><p>Von Carports bis Garagen – du entscheidest.</p></div>
+        <div><h4>Einfach buchen</h4><p>Stellplatz auswählen, Kontakt aufnehmen, fertig.</p></div>
       </div>
     </div>
   </div>
 </section>
 
-<section class="photo-banner fade-up">
-  <div class="wrap">
-    <img src="photo-3.jpg" alt="Private Stellplätze vor Wohngebäude" class="banner-photo">
-  </div>
-</section>
-
-<section class="results fade-up">
+<section class="results fade-up" id="ergebnisse">
   <div class="wrap">
     <div class="results-head">
       <h2>Verfügbare Stellplätze</h2>
@@ -382,7 +415,7 @@
         <div class="benefit"><div class="num">2</div><p>Du entscheidest selbst über Preis und Verfügbarkeit.</p></div>
         <div class="benefit"><div class="num">3</div><p>Wir sind in der Testphase – dein Eintrag hilft uns direkt zu zeigen, wie groß die Nachfrage wirklich ist.</p></div>
       </div>
-      <img src="photo-2.jpg" alt="Moderne private Tiefgarage" class="offer-photo">
+      <img src="photo-1.jpg" alt="Private Tiefgarage" class="offer-photo photo-reveal">
     </div>
 
     <div class="form-card">
@@ -415,6 +448,62 @@
     </div>
   </div>
 </section>
+
+<section class="howworks fade-up">
+  <div class="wrap">
+    <h2 class="section-title">So funktioniert es</h2>
+    <p class="section-sub">Wir verbinden freie Stellplätze mit Menschen, die genau dort einen Parkplatz suchen.</p>
+    <div class="how-grid how-grid-4">
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <path d="M50 30 C38 30 30 40 30 50 C30 62 50 75 50 75 C50 75 70 62 70 50 C70 40 62 30 50 30 Z" fill="none" stroke="#0A3D3A" stroke-width="3.2"/>
+          <circle cx="50" cy="48" r="7" fill="#0A3D3A"/>
+        </svg>
+        <h3>Näher</h3>
+        <p>Finde Parkplätze genau dort, wo du sie brauchst.</p>
+      </div>
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <circle cx="50" cy="50" r="20" fill="none" stroke="#0A3D3A" stroke-width="3.2"/>
+          <path d="M50 40 L50 50 L58 56" stroke="#0A3D3A" stroke-width="3.2" stroke-linecap="round" fill="none"/>
+        </svg>
+        <h3>Einfacher</h3>
+        <p>Keine endlose Parkplatzsuche – nur ein Klick.</p>
+      </div>
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <rect x="34" y="34" width="32" height="32" rx="4" fill="none" stroke="#0A3D3A" stroke-width="3.2"/>
+          <circle cx="50" cy="50" r="6" fill="#0A3D3A"/>
+        </svg>
+        <h3>Privat</h3>
+        <p>Nutze vorhandenen privaten Parkraum.</p>
+      </div>
+      <div class="how-item">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r="46" fill="#E4ECEA"/>
+          <path d="M34 58 L46 44 L56 52 L68 36" stroke="#0A3D3A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+          <path d="M60 36 H68 V44" stroke="#0A3D3A" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+        <h3>Smarter</h3>
+        <p>Vorhandene Stellplätze besser nutzen.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="about fade-up">
+  <div class="wrap about-wrap">
+    <img src="photo-3.jpg" alt="Wohngebäude mit privaten Stellplätzen" class="about-photo photo-reveal">
+    <div>
+      <h2 class="section-title" style="text-align:left;">Eine Idee von Sina &amp; Stefanie.</h2>
+      <p>Wir haben uns gefragt, wo gerade ein echter Bedarf besteht und wie wir gemeinsam eine gute Lösung schaffen können. Wir arbeiten sehr gerne zusammen und wollten nicht einfach irgendein Unternehmen gründen, sondern ein echtes Problem lösen.</p>
+    </div>
+  </div>
+</section>
+
 
 <div class="modal-overlay" id="impressum">
   <div class="modal-box">
@@ -604,6 +693,7 @@ function showInterest(id){
   alert('Danke für dein Interesse! In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.');
 }
 
+
 async function submitListing(e){
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
@@ -644,6 +734,10 @@ async function submitListing(e){
   allListings = await loadListings();
   renderListings();
 
+  requestAnimationFrame(()=>{
+    setTimeout(()=>{ document.querySelector('.hero-bg')?.classList.add('visible'); }, 100);
+  });
+
   const observer = new IntersectionObserver((entries)=>{
     entries.forEach(entry=>{
       if(entry.isIntersecting){
@@ -652,7 +746,7 @@ async function submitListing(e){
       }
     });
   }, { threshold: 0.15 });
-  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+  document.querySelectorAll('.fade-up, .photo-reveal').forEach(el => observer.observe(el));
 })();
 </script>
 
