@@ -615,6 +615,10 @@
     <form id="authForm" onsubmit="return submitAuth(event)">
       <div class="field"><label for="auth-email">E-Mail-Adresse</label><input id="auth-email" type="email" required></div>
       <div class="field"><label for="auth-password">Passwort</label><input id="auth-password" type="password" required minlength="6"></div>
+      <div class="checkbox-field" id="authTermsField" style="display:none;">
+        <input type="checkbox" id="auth-terms">
+        <label for="auth-terms">Ich stimme den <a onclick="openModal('nutzungsbedingungen')" style="color:var(--petrol);font-weight:600;cursor:pointer;">Nutzungsbedingungen</a> zu.</label>
+      </div>
       <button type="submit" class="btn lime" style="width:100%;margin-top:6px;" id="authSubmitBtn">Anmelden</button>
       <div id="authMsg"></div>
     </form>
@@ -1091,6 +1095,8 @@ function renderAuthMode(){
   document.getElementById('authSubmitBtn').textContent = isLogin ? 'Anmelden' : 'Registrieren';
   document.getElementById('authToggleText').textContent = isLogin ? 'Noch kein Konto?' : 'Schon ein Konto?';
   document.getElementById('authToggleLink').textContent = isLogin ? 'Jetzt registrieren' : 'Jetzt anmelden';
+  document.getElementById('authTermsField').style.display = isLogin ? 'none' : 'flex';
+  document.getElementById('auth-terms').checked = false;
 }
 
 async function submitAuth(e){
@@ -1098,6 +1104,11 @@ async function submitAuth(e){
   const msgEl = document.getElementById('authMsg');
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
+
+  if(authMode === 'signup' && !document.getElementById('auth-terms').checked){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte stimme den Nutzungsbedingungen zu.</div>';
+    return false;
+  }
 
   const { data, error } = authMode === 'login'
     ? await supabaseClient.auth.signInWithPassword({ email, password })
