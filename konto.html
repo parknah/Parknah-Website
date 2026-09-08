@@ -41,6 +41,7 @@
   .status.angefragt{background:#FFF3D6;color:#8A6417;}
   .status.bestaetigt{background:#DCEAE4;color:#20493D;}
   .status.abgelehnt{background:#F6DFD8;color:var(--danger);}
+  .status.storniert{background:var(--petrol-soft);color:var(--ink-soft);}
   .card-actions{display:flex;gap:8px;margin-top:12px;}
   .btn-sm{font-size:13px;padding:8px 14px;border-radius:6px;border:none;cursor:pointer;font-weight:600;}
   .btn-sm.confirm{background:var(--petrol);color:#fff;}
@@ -69,6 +70,9 @@
       <button class="btn" type="submit" id="authSubmitBtn">Anmelden</button>
       <div id="authMsg"></div>
     </form>
+    <p id="forgotPasswordLine" class="toggle-text" style="margin-top:8px;">
+      <a onclick="requestPasswordReset()">Passwort vergessen?</a>
+    </p>
     <p class="toggle-text">
       <span id="authToggleText">Noch kein Konto?</span>
       <a onclick="toggleAuthMode()"><span id="authToggleLink">Jetzt registrieren</span></a>
@@ -98,7 +102,7 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 let authMode = 'login';
 let currentUser = null;
 
-const statusLabels = { angefragt: 'Angefragt', bestaetigt: 'Bestätigt', abgelehnt: 'Abgelehnt' };
+const statusLabels = { angefragt: 'Angefragt', bestaetigt: 'Bestätigt', abgelehnt: 'Abgelehnt', storniert: 'Storniert' };
 
 function toggleAuthMode(){
   authMode = authMode === 'login' ? 'signup' : 'login';
@@ -109,6 +113,24 @@ function toggleAuthMode(){
   document.getElementById('authToggleLink').textContent = isLogin ? 'Jetzt registrieren' : 'Jetzt anmelden';
   document.getElementById('authTermsField').style.display = isLogin ? 'none' : 'flex';
   document.getElementById('auth-terms').checked = false;
+  document.getElementById('forgotPasswordLine').style.display = isLogin ? 'block' : 'none';
+}
+
+async function requestPasswordReset(){
+  const email = document.getElementById('auth-email').value.trim();
+  const msgEl = document.getElementById('authMsg');
+  if(!email){
+    msgEl.innerHTML = '<div class="msg err">Bitte trag oben zuerst deine E-Mail-Adresse ein.</div>';
+    return;
+  }
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/reset-passwort.html'
+  });
+  if(error){
+    msgEl.innerHTML = '<div class="msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+    return;
+  }
+  msgEl.innerHTML = '<div class="msg ok">Falls ein Konto mit dieser E-Mail existiert, haben wir einen Link zum Zurücksetzen geschickt.</div>';
 }
 
 async function submitAuth(e){
@@ -185,6 +207,10 @@ async function loadHostBookings(){
           <button class="btn-sm confirm" onclick="updateBookingStatus('${b.id}','bestaetigt')">Bestätigen</button>
           <button class="btn-sm decline" onclick="updateBookingStatus('${b.id}','abgelehnt')">Ablehnen</button>
         </div>` : ''}
+      ${b.status === 'bestaetigt' ? `
+        <div class="card-actions">
+          <button class="btn-sm decline" onclick="updateBookingStatus('${b.id}','storniert')">Stornieren</button>
+        </div>` : ''}
     </div>`;
   }).join('');
 }
@@ -208,8 +234,21 @@ async function loadMyBookings(){
         </div>
         <span class="status ${b.status}">${statusLabels[b.status] || b.status}</span>
       </div>
+      ${(b.status === 'angefragt' || b.status === 'bestaetigt') ? `
+        <div class="card-actions">
+          <button class="btn-sm decline" onclick="cancelMyBooking('${b.id}')">Stornieren</button>
+        </div>` : ''}
     </div>
   `).join('');
+}
+
+async function cancelMyBooking(id){
+  const { error } = await supabaseClient.from('bookings').update({ status: 'storniert' }).eq('id', id);
+  if(error){
+    alert('Speichern fehlgeschlagen: ' + error.message);
+    return;
+  }
+  loadMyBookings();
 }
 
 async function updateBookingStatus(id, status){

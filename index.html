@@ -622,6 +622,9 @@
       <button type="submit" class="btn lime" style="width:100%;margin-top:6px;" id="authSubmitBtn">Anmelden</button>
       <div id="authMsg"></div>
     </form>
+    <p id="forgotPasswordLine" style="font-size:13px;text-align:center;margin-top:10px;">
+      <a onclick="requestPasswordReset()" style="color:var(--ink-soft);cursor:pointer;">Passwort vergessen?</a>
+    </p>
     <p style="font-size:13.5px;color:var(--ink-soft);margin-top:16px;text-align:center;">
       <span id="authToggleText">Noch kein Konto?</span>
       <a onclick="toggleAuthMode()" style="color:var(--petrol);font-weight:600;cursor:pointer;">
@@ -1097,6 +1100,24 @@ function renderAuthMode(){
   document.getElementById('authToggleLink').textContent = isLogin ? 'Jetzt registrieren' : 'Jetzt anmelden';
   document.getElementById('authTermsField').style.display = isLogin ? 'none' : 'flex';
   document.getElementById('auth-terms').checked = false;
+  document.getElementById('forgotPasswordLine').style.display = isLogin ? 'block' : 'none';
+}
+
+async function requestPasswordReset(){
+  const email = document.getElementById('auth-email').value.trim();
+  const msgEl = document.getElementById('authMsg');
+  if(!email){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte trag oben zuerst deine E-Mail-Adresse ein.</div>';
+    return;
+  }
+  const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/reset-passwort.html'
+  });
+  if(error){
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+    return;
+  }
+  msgEl.innerHTML = '<div class="form-msg ok">Falls ein Konto mit dieser E-Mail existiert, haben wir einen Link zum Zurücksetzen geschickt.</div>';
 }
 
 async function submitAuth(e){

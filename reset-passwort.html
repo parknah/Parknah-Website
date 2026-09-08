@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neues Passwort – Parknah</title>
+<link rel="icon" type="image/png" href="favicon.png">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --bg:#F6F3EE; --surface:#FFFFFF; --ink:#10201D; --ink-soft:#52605C;
+    --line:#DEDCD2; --petrol:#0A3D3A; --petrol-soft:#E4ECEA;
+    --lime:#A6D608; --lime-ink:#3A4A16; --danger:#A1442E;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Inter',sans-serif;}
+  .wrap{max-width:400px;margin:80px auto;padding:0 20px;}
+  .box{background:#fff;border:1px solid var(--line);border-radius:14px;padding:28px;}
+  h1{font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 6px;}
+  p.sub{font-size:13.5px;color:var(--ink-soft);margin:0 0 18px;}
+  .field{margin-bottom:14px;display:flex;flex-direction:column;gap:6px;}
+  .field label{font-size:13px;font-weight:600;color:var(--ink-soft);}
+  .field input{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:14.5px;}
+  .btn{background:var(--petrol);color:#fff;border:none;font-size:15px;font-weight:600;padding:12px 20px;border-radius:8px;cursor:pointer;width:100%;}
+  .btn:hover{background:#082e2b;}
+  .msg{margin-top:10px;font-size:14px;padding:8px 10px;border-radius:8px;}
+  .msg.err{background:#F6DFD8;color:var(--danger);}
+  .msg.ok{background:#DCEAE4;color:#20493D;}
+  a.back{color:var(--petrol);font-size:13.5px;font-weight:600;text-decoration:none;display:block;margin-top:16px;text-align:center;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="box">
+    <h1>Neues Passwort setzen</h1>
+    <p class="sub" id="statusText">Link wird geprüft …</p>
+    <form id="resetForm" onsubmit="return submitReset(event)" style="display:none;">
+      <div class="field"><label>Neues Passwort</label><input id="new-password" type="password" required minlength="6"></div>
+      <button class="btn" type="submit">Passwort speichern</button>
+      <div id="resetMsg"></div>
+    </form>
+    <a class="back" href="index.html">← Zurück zur Website</a>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = "https://efjmifphnuqnvaxylmay.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let readyToReset = false;
+
+supabaseClient.auth.onAuthStateChange((event, session) => {
+  if(event === 'PASSWORD_RECOVERY'){
+    readyToReset = true;
+    document.getElementById('statusText').textContent = 'Trag dein neues Passwort ein.';
+    document.getElementById('resetForm').style.display = 'block';
+  }
+});
+
+async function submitReset(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('resetMsg');
+  const password = document.getElementById('new-password').value;
+
+  const { error } = await supabaseClient.auth.updateUser({ password });
+  if(error){
+    msgEl.innerHTML = '<div class="msg err">Da ist etwas schiefgelaufen: ' + error.message + '</div>';
+    return false;
+  }
+  msgEl.innerHTML = '<div class="msg ok">Passwort gespeichert! Du kannst dich jetzt damit anmelden.</div>';
+  document.getElementById('resetForm').style.display = 'none';
+  return false;
+}
+
+// Falls der Link ungültig/abgelaufen ist und kein Recovery-Event kommt
+setTimeout(() => {
+  if(!readyToReset){
+    document.getElementById('statusText').textContent = 'Dieser Link ist ungültig oder abgelaufen. Fordere über "Passwort vergessen?" einen neuen an.';
+  }
+}, 3000);
+</script>
+
+</body>
+</html>
