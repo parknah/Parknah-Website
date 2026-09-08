@@ -240,6 +240,7 @@
   .card .price span{font-family:'Inter',sans-serif;font-size:13px;font-weight:400;color:var(--ink-soft);}
   .card .desc{font-size:14px;color:var(--ink-soft);flex:1;}
   .card .avail{font-size:13px;color:var(--petrol);font-weight:600;}
+  .card-actions{display:flex;flex-direction:column;gap:8px;margin-top:6px;}
   .btn-outline{background:transparent;border:1.5px solid var(--petrol);color:var(--petrol);font-family:'Inter', sans-serif;font-size:14px;font-weight:700;padding:9px 16px;border-radius:8px;cursor:pointer;width:100%;}
   .btn-outline:hover{background:var(--petrol);color:#fff;}
   .empty{grid-column:1/-1;padding:40px 20px;text-align:center;color:var(--ink-soft);border:1px dashed var(--line);border-radius:12px;}
@@ -352,7 +353,10 @@
     <div class="brand">
       <img src="favicon.png" alt="Parknah" class="logo-mark">
     </div>
-    <a class="nav-link" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</a>
+    <div style="display:flex;align-items:center;gap:22px;">
+      <a class="nav-link" onclick="document.getElementById('anbieten').scrollIntoView({behavior:'smooth'})">Stellplatz anbieten</a>
+      <a class="nav-link" id="accountLink" href="konto.html">Anmelden</a>
+    </div>
   </div>
 </header>
 
@@ -449,7 +453,8 @@
     </div>
 
     <div class="form-card">
-      <h3 style="font-size:19px;margin:0 0 16px;font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);">Stellplatz eintragen</h3>
+      <h3 style="font-size:19px;margin:0 0 4px;font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);">Stellplatz eintragen</h3>
+      <p style="font-size:13px;color:var(--ink-soft);margin:0 0 16px;">Du brauchst dafür ein kostenloses Konto – falls du noch nicht angemeldet bist, wirst du beim Absenden automatisch dazu aufgefordert.</p>
       <form id="listingForm" onsubmit="return submitListing(event)">
         <div style="position:absolute;left:-9999px;opacity:0;" aria-hidden="true">
           <label for="f-website">Website (bitte leer lassen)</label>
@@ -575,6 +580,42 @@
   </div>
 </section>
 
+
+<div class="modal-overlay" id="authModal">
+  <div class="modal-box" style="max-width:400px;">
+    <button class="modal-close" onclick="closeModal('authModal')" aria-label="Schließen">✕</button>
+    <h2 id="authTitle" style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 6px;">Anmelden</h2>
+    <p id="authSubtitle" style="font-size:13.5px;color:var(--ink-soft);margin:0 0 18px;">Melde dich an, um fortzufahren.</p>
+    <form id="authForm" onsubmit="return submitAuth(event)">
+      <div class="field"><label for="auth-email">E-Mail-Adresse</label><input id="auth-email" type="email" required></div>
+      <div class="field"><label for="auth-password">Passwort</label><input id="auth-password" type="password" required minlength="6"></div>
+      <button type="submit" class="btn lime" style="width:100%;margin-top:6px;" id="authSubmitBtn">Anmelden</button>
+      <div id="authMsg"></div>
+    </form>
+    <p style="font-size:13.5px;color:var(--ink-soft);margin-top:16px;text-align:center;">
+      <span id="authToggleText">Noch kein Konto?</span>
+      <a onclick="toggleAuthMode()" style="color:var(--petrol);font-weight:600;cursor:pointer;">
+        <span id="authToggleLink">Jetzt registrieren</span>
+      </a>
+    </p>
+  </div>
+</div>
+
+<div class="modal-overlay" id="bookingModal">
+  <div class="modal-box" style="max-width:420px;">
+    <button class="modal-close" onclick="closeModal('bookingModal')" aria-label="Schließen">✕</button>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 6px;">Stellplatz buchen</h2>
+    <p id="bookingIntro" style="font-size:13.5px;color:var(--ink-soft);margin:0 0 18px;"></p>
+    <form id="bookingForm" onsubmit="return submitBooking(event)">
+      <div class="form-row">
+        <div class="field"><label for="b-start">Von</label><input id="b-start" type="date" required></div>
+        <div class="field"><label for="b-end">Bis</label><input id="b-end" type="date" required></div>
+      </div>
+      <button type="submit" class="btn lime" style="width:100%;margin-top:6px;">Buchungsanfrage senden</button>
+      <div id="bookingMsg"></div>
+    </form>
+  </div>
+</div>
 
 <div class="modal-overlay" id="interesseModal">
   <div class="modal-box" style="max-width:420px;">
@@ -833,7 +874,8 @@ async function insertListing(listing){
     lng: listing.lng,
     price: listing.price,
     availability: listing.availability,
-    description: listing.description
+    description: listing.description,
+    owner_id: currentUser.id
   });
 
   if(error){
@@ -891,7 +933,8 @@ async function renderListings(){
         ${l.description ? `<div class="desc">${escapeHtml(l.description)}</div>` : ''}
         <div class="avail">Verfügbar: ${escapeHtml(l.availability)}</div>
         <div class="card-actions">
-          <button class="btn-outline" onclick="showInterest('${l.id}')">Interesse melden</button>
+          <button class="btn lime" style="width:100%;" onclick="showBooking('${l.id}')">Jetzt buchen</button>
+          <button class="btn-outline" onclick="showInterest('${l.id}')">Erst Frage stellen</button>
         </div>
       </div>
     `).join('');
@@ -936,6 +979,129 @@ function escapeHtml(str){
   const d = document.createElement('div');
   d.textContent = str ?? '';
   return d.innerHTML;
+}
+
+// ---- Login / Registrierung ----
+let authMode = 'login'; // oder 'signup'
+let authOnSuccess = null; // Callback, der nach erfolgreichem Login läuft
+let currentUser = null;
+
+async function checkAuthState(){
+  const { data } = await supabaseClient.auth.getSession();
+  currentUser = data.session ? data.session.user : null;
+  updateAccountLink();
+}
+
+function updateAccountLink(){
+  const link = document.getElementById('accountLink');
+  link.textContent = currentUser ? 'Mein Konto' : 'Anmelden';
+}
+
+function openAuthModal(onSuccess){
+  authOnSuccess = onSuccess || null;
+  authMode = 'login';
+  renderAuthMode();
+  document.getElementById('authForm').reset();
+  document.getElementById('authMsg').innerHTML = '';
+  openModal('authModal');
+}
+
+function toggleAuthMode(){
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  renderAuthMode();
+}
+
+function renderAuthMode(){
+  const isLogin = authMode === 'login';
+  document.getElementById('authTitle').textContent = isLogin ? 'Anmelden' : 'Konto erstellen';
+  document.getElementById('authSubtitle').textContent = isLogin ? 'Melde dich an, um fortzufahren.' : 'Leg ein kostenloses Konto an, um fortzufahren.';
+  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Anmelden' : 'Registrieren';
+  document.getElementById('authToggleText').textContent = isLogin ? 'Noch kein Konto?' : 'Schon ein Konto?';
+  document.getElementById('authToggleLink').textContent = isLogin ? 'Jetzt registrieren' : 'Jetzt anmelden';
+}
+
+async function submitAuth(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('authMsg');
+  const email = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+
+  const { data, error } = authMode === 'login'
+    ? await supabaseClient.auth.signInWithPassword({ email, password })
+    : await supabaseClient.auth.signUp({ email, password });
+
+  if(error){
+    msgEl.innerHTML = '<div class="form-msg err">' + (authMode === 'login' ? 'Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.' : 'Registrierung fehlgeschlagen: ' + error.message) + '</div>';
+    return false;
+  }
+
+  currentUser = data.user;
+  updateAccountLink();
+  closeModal('authModal');
+  if(authOnSuccess) authOnSuccess();
+  return false;
+}
+
+// ---- Buchungsanfragen ----
+let currentBookingListing = null;
+
+function showBooking(id){
+  if(!currentUser){
+    openAuthModal(() => showBooking(id));
+    return;
+  }
+  currentBookingListing = allListings.find(l=>l.id===id);
+  document.getElementById('bookingIntro').textContent = 'Wähle den gewünschten Zeitraum für "' + currentBookingListing.location + '".';
+  document.getElementById('bookingForm').reset();
+  document.getElementById('bookingMsg').innerHTML = '';
+  openModal('bookingModal');
+}
+
+function rangesOverlap(startA, endA, startB, endB){
+  return startA <= endB && startB <= endA;
+}
+
+async function submitBooking(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('bookingMsg');
+  const start = document.getElementById('b-start').value;
+  const end = document.getElementById('b-end').value;
+
+  if(end < start){
+    msgEl.innerHTML = '<div class="form-msg err">Das Enddatum muss nach dem Startdatum liegen.</div>';
+    return false;
+  }
+
+  // Verfügbarkeit gegen bereits bestätigte Buchungen prüfen
+  const { data: booked, error: rpcError } = await supabaseClient.rpc('get_booked_ranges', { p_listing_id: currentBookingListing.id });
+  if(rpcError){
+    console.error('Verfügbarkeitsprüfung fehlgeschlagen', rpcError);
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+    return false;
+  }
+  const conflict = (booked || []).some(b => rangesOverlap(start, end, b.start_date, b.end_date));
+  if(conflict){
+    msgEl.innerHTML = '<div class="form-msg err">Für diesen Zeitraum ist der Stellplatz schon vergeben. Bitte wähle einen anderen Zeitraum.</div>';
+    return false;
+  }
+
+  const { error } = await supabaseClient.from('bookings').insert({
+    listing_id: currentBookingListing.id,
+    requester_id: currentUser.id,
+    requester_email: currentUser.email,
+    start_date: start,
+    end_date: end
+  });
+
+  if(error){
+    console.error('Buchungsanfrage fehlgeschlagen', error);
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+    return false;
+  }
+
+  msgEl.innerHTML = '<div class="form-msg ok">Anfrage gesendet! Du bekommst Bescheid, sobald die anbietende Person bestätigt hat.</div>';
+  setTimeout(() => closeModal('bookingModal'), 1800);
+  return false;
 }
 
 let currentInteresseListing = null;
@@ -1022,6 +1188,11 @@ async function submitListing(e){
   e.preventDefault();
   const msgEl = document.getElementById('formMsg');
 
+  if(!currentUser){
+    openAuthModal(() => document.getElementById('listingForm').requestSubmit());
+    return false;
+  }
+
   // Spam-Schutz: Bots füllen versteckte Felder oft automatisch aus
   if(document.getElementById('f-website').value.trim() !== ''){
     msgEl.innerHTML = '<div class="form-msg ok">Danke! Dein Stellplatz wurde eingetragen und ist jetzt oben in der Liste sichtbar.</div>';
@@ -1077,6 +1248,7 @@ async function submitListing(e){
   toggleAvailabilityFields();
   initAutocompletes();
   initResultsMap();
+  await checkAuthState();
   allListings = await loadListings();
   renderListings();
 
