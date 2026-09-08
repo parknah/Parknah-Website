@@ -1172,6 +1172,24 @@ async function submitBooking(e){
     return false;
   }
 
+  // Team per Mail benachrichtigen (nicht kritisch für die Buchung selbst,
+  // daher ohne die Buchung zu blockieren, falls das mal fehlschlägt)
+  try{
+    const formData = new FormData();
+    formData.append('Betreff', 'Neue Buchungsanfrage');
+    formData.append('Stellplatz', currentBookingListing.location);
+    formData.append('Zeitraum', start + ' bis ' + end);
+    formData.append('Anfragende E-Mail', currentUser.email);
+    formData.append('Hinweis', 'Bitte in konto.html bestätigen oder ablehnen.');
+    fetch('https://formspree.io/f/' + FORMSPREE_FORM_ID, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: formData
+    });
+  }catch(notifyErr){
+    console.error('Benachrichtigung fehlgeschlagen', notifyErr);
+  }
+
   msgEl.innerHTML = '<div class="form-msg ok">Anfrage gesendet! Du bekommst Bescheid, sobald die anbietende Person bestätigt hat.</div>';
   setTimeout(() => closeModal('bookingModal'), 1800);
   return false;
