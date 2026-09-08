@@ -29,6 +29,8 @@
   th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid var(--line);}
   th{background:var(--petrol-soft);color:var(--petrol);font-weight:700;}
   .del-btn{background:var(--danger);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12.5px;cursor:pointer;}
+  .edit-btn{background:var(--petrol);color:#fff;border:none;padding:6px 12px;border-radius:6px;font-size:12.5px;cursor:pointer;margin-right:6px;}
+  .edit-btn:hover{background:#082e2b;}
   .del-btn:hover{opacity:0.85;}
   .section{margin-top:44px;}
   .topbar{display:flex;justify-content:space-between;align-items:center;}
@@ -59,7 +61,7 @@
   <div class="section">
     <h2 style="font-size:18px;">Stellplatz-Einträge</h2>
     <table id="listingsTable">
-      <thead><tr><th>Name</th><th>Flughafen</th><th>Lage</th><th>Preis</th><th>Kontakt</th><th></th></tr></thead>
+      <thead><tr><th>Name</th><th>Flughafen</th><th>Lage</th><th>Preis</th><th>Verfügbarkeit</th><th>Kontakt</th><th></th></tr></thead>
       <tbody id="listingsBody"></tbody>
     </table>
   </div>
@@ -112,7 +114,7 @@ async function loadListings(){
   const { data, error } = await supabaseClient.from('listings').select('*').order('created_at', { ascending:false });
   const body = document.getElementById('listingsBody');
   if(error || !data || data.length === 0){
-    body.innerHTML = '<tr><td colspan="6" class="empty">Noch keine Einträge.</td></tr>';
+    body.innerHTML = '<tr><td colspan="7" class="empty">Noch keine Einträge.</td></tr>';
     return;
   }
   body.innerHTML = data.map(l => `
@@ -121,10 +123,28 @@ async function loadListings(){
       <td>${escapeHtml(l.airport)}</td>
       <td>${escapeHtml(l.location)}</td>
       <td>${l.price} €</td>
+      <td>${escapeHtml(l.availability)}</td>
       <td>${escapeHtml(l.contact)}</td>
-      <td><button class="del-btn" onclick="deleteListing('${l.id}')">Löschen</button></td>
+      <td>
+        <button class="edit-btn" onclick="editAvailability('${l.id}', this)">Bearbeiten</button>
+        <button class="del-btn" onclick="deleteListing('${l.id}')">Löschen</button>
+      </td>
     </tr>
   `).join('');
+}
+
+async function editAvailability(id, btn){
+  const row = btn.closest('tr');
+  const cell = row.children[4];
+  const current = cell.textContent;
+  const neu = prompt('Verfügbarkeit anpassen (z. B. wenn ein Teil des Zeitraums schon vergeben ist):', current);
+  if(neu === null || neu.trim() === '') return;
+  const { error } = await supabaseClient.from('listings').update({ availability: neu.trim() }).eq('id', id);
+  if(error){
+    alert('Speichern fehlgeschlagen: ' + error.message);
+    return;
+  }
+  loadListings();
 }
 
 async function loadWaitlist(){

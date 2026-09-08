@@ -535,14 +535,27 @@
 
 
 <div class="modal-overlay" id="interesseModal">
-  <div class="modal-box" style="max-width:420px;text-align:center;">
+  <div class="modal-box" style="max-width:420px;">
     <button class="modal-close" onclick="closeModal('interesseModal')" aria-label="Schließen">✕</button>
-    <div style="width:56px;height:56px;border-radius:50%;background:var(--petrol-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
-      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="#0A3D3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+    <div id="interesseFormView" style="text-align:left;">
+      <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 8px;">Interesse an diesem Stellplatz</h2>
+      <p id="interesseIntro" style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 18px;"></p>
+      <form id="interesseForm" onsubmit="return submitInteresse(event)">
+        <div class="field"><label for="i-email">Deine E-Mail-Adresse</label><input id="i-email" type="email" required placeholder="du@beispiel.de"></div>
+        <button type="submit" class="btn lime" style="width:100%;margin-top:6px;">Anfrage senden</button>
+        <div id="interesseMsg"></div>
+      </form>
     </div>
-    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 10px;">Danke für dein Interesse!</h2>
-    <p id="interesseText" style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 20px;"></p>
-    <button class="btn" style="width:100%;" onclick="closeModal('interesseModal')">Alles klar</button>
+
+    <div id="interesseSuccessView" style="display:none;text-align:center;">
+      <div style="width:56px;height:56px;border-radius:50%;background:var(--petrol-soft);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M5 13 L10 18 L19 6" stroke="#0A3D3A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:20px;margin:0 0 10px;">Danke für dein Interesse!</h2>
+      <p style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 20px;">Wir haben deine Anfrage erhalten und melden uns in der Testphase manuell bei dir.</p>
+      <button class="btn" style="width:100%;" onclick="closeModal('interesseModal')">Alles klar</button>
+    </div>
   </div>
 </div>
 
@@ -648,7 +661,7 @@
 const AIRPORTS = [
   "Frankfurt (FRA)", "München (MUC)", "Düsseldorf (DUS)", "Berlin (BER)",
   "Hamburg (HAM)", "Köln/Bonn (CGN)", "Stuttgart (STR)", "Baden-Airpark (FKB)",
-  "Nürnberg (NUE)", "Hannover (HAJ)"
+  "Nürnberg (NUE)", "Hannover (HAJ)", "Memmingen (FMM)"
 ];
 
 // ---- Supabase-Konfiguration ----
@@ -774,10 +787,50 @@ function escapeHtml(str){
   return d.innerHTML;
 }
 
+let currentInteresseListing = null;
+
 function showInterest(id){
-  const listing = allListings.find(l=>l.id===id);
-  document.getElementById('interesseText').textContent = 'In der Testphase melden wir uns manuell bei dir und stellen den Kontakt zu "' + listing.name + '" her.';
+  currentInteresseListing = allListings.find(l=>l.id===id);
+  document.getElementById('interesseIntro').textContent = 'Trag deine E-Mail-Adresse ein, dann leiten wir dein Interesse an "' + currentInteresseListing.location + '" (' + currentInteresseListing.airport + ') an uns weiter.';
+  document.getElementById('interesseFormView').style.display = 'block';
+  document.getElementById('interesseSuccessView').style.display = 'none';
+  document.getElementById('interesseForm').reset();
+  document.getElementById('interesseMsg').innerHTML = '';
   openModal('interesseModal');
+}
+
+// ---- Formspree-Konfiguration ----
+// Kostenlosen Account auf https://formspree.io anlegen, ein neues Formular
+// mit Ziel-E-Mail info.parknah@gmail.com erstellen und die Formular-ID
+// (aus der Endpoint-URL) hier eintragen, z. B. "xyzabcde".
+const FORMSPREE_FORM_ID = "mnpqgkpj";
+
+async function submitInteresse(e){
+  e.preventDefault();
+  const msgEl = document.getElementById('interesseMsg');
+  const email = document.getElementById('i-email').value.trim();
+
+  const formData = new FormData();
+  formData.append('Anfragende E-Mail', email);
+  formData.append('Stellplatz', currentInteresseListing.location);
+  formData.append('Flughafen', currentInteresseListing.airport);
+  formData.append('Angeboten von', currentInteresseListing.name);
+
+  try{
+    const res = await fetch('https://formspree.io/f/' + FORMSPREE_FORM_ID, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: formData
+    });
+    if(!res.ok) throw new Error('Formspree-Fehler');
+
+    document.getElementById('interesseFormView').style.display = 'none';
+    document.getElementById('interesseSuccessView').style.display = 'block';
+  }catch(err){
+    console.error('Interesse-Anfrage fehlgeschlagen', err);
+    msgEl.innerHTML = '<div class="form-msg err">Da ist etwas schiefgelaufen. Bitte versuch es gleich nochmal.</div>';
+  }
+  return false;
 }
 
 
@@ -785,6 +838,11 @@ function toggleAvailabilityFields(){
   const isEinmalig = document.querySelector('input[name="f-avail-type"]:checked').value === 'einmalig';
   document.getElementById('availEinmalig').style.display = isEinmalig ? 'block' : 'none';
   document.getElementById('availRegelmaessig').style.display = isEinmalig ? 'none' : 'block';
+
+  document.getElementById('f-avail-start').required = isEinmalig;
+  document.getElementById('f-avail-end').required = isEinmalig;
+  document.getElementById('f-avail-time-start').required = !isEinmalig;
+  document.getElementById('f-avail-time-end').required = !isEinmalig;
 }
 
 function formatDateTime(value){
@@ -862,6 +920,7 @@ async function submitListing(e){
 
 (async function init(){
   populateAirportSelects();
+  toggleAvailabilityFields();
   allListings = await loadListings();
   renderListings();
 
