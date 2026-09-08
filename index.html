@@ -9,6 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
   :root{
     --bg: #F6F3EE;
@@ -201,6 +203,28 @@
   .results-layout{display:grid;grid-template-columns:1.4fr 1fr;gap:28px;align-items:start;}
   .results-map{width:100%;height:600px;border-radius:12px;overflow:hidden;border:1px solid var(--line);background:var(--petrol-soft);}
   .map-note{font-size:12px;color:var(--ink-soft);margin-top:8px;}
+  .autocomplete-list{
+    display:none;
+    position:absolute;
+    top:100%;left:0;right:0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    margin-top:4px;
+    max-height:220px;
+    overflow-y:auto;
+    z-index:20;
+    box-shadow:0 12px 24px rgba(10,61,58,0.14);
+  }
+  .autocomplete-item{
+    padding:10px 14px;
+    font-size:13.5px;
+    color:var(--ink);
+    cursor:pointer;
+    border-bottom:1px solid var(--line);
+  }
+  .autocomplete-item:last-child{border-bottom:none;}
+  .autocomplete-item:hover{background:var(--petrol-soft);}
   .results-layout > div:last-child{position:sticky;top:20px;}
   .grid{display:grid;grid-template-columns:repeat(auto-fill, minmax(230px,1fr));gap:18px;}
   @media (max-width:900px){
@@ -348,9 +372,10 @@
 
 <div class="wrap ticket-wrap">
   <div class="ticket">
-    <div class="ticket-field">
+    <div class="ticket-field" style="position:relative;">
       <label for="locationSearch">Ort oder PLZ</label>
       <input id="locationSearch" type="text" placeholder="z. B. Köln oder 50667" autocomplete="off">
+      <div id="locationSearchList" class="autocomplete-list"></div>
     </div>
     <div class="ticket-field">
       <label for="sortSelect">Sortieren</label>
@@ -434,9 +459,10 @@
           <div class="field"><label for="f-name">Dein Name</label><input id="f-name" required placeholder="z. B. Anna M."></div>
           <div class="field"><label for="f-contact">E-Mail-Adresse</label><input id="f-contact" type="email" required placeholder="anna@beispiel.de"></div>
         </div>
-        <div class="field">
+        <div class="field" style="position:relative;">
           <label for="f-address">Genaue Adresse (nur für die Karte, wird nicht öffentlich angezeigt)</label>
           <input id="f-address" required placeholder="Adresse eingeben und auswählen" autocomplete="off">
+          <div id="f-addressList" class="autocomplete-list"></div>
           <input type="hidden" id="f-lat">
           <input type="hidden" id="f-lng">
         </div>
@@ -674,11 +700,6 @@
 </footer>
 
 <script>
-// ---- Google Maps Konfiguration ----
-// API-Key aus der Google Cloud Console eintragen (Places API + Maps
-// JavaScript API müssen dort aktiviert sein). Siehe SETUP.md.
-const GOOGLE_MAPS_API_KEY = "DEIN_GOOGLE_MAPS_API_KEY";
-
 // ---- Supabase-Konfiguration ----
 // Diese beiden Werte findest du in deinem Supabase-Projekt unter
 // "Project Settings" -> "API". Trag sie hier ein, bevor die Seite live geht.
@@ -687,61 +708,73 @@ const SUPABASE_ANON_KEY = "sb_publishable_1zmZqENMEINEMiRurBbseQ_EDokS16e";
 
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let searchLocation = null; // { lat, lng, label }
+let searchLocation = null; // { lat, lng }
 let resultsMap = null;
 let mapMarkers = [];
 
-function loadGoogleMapsScript(){
-  const script = document.createElement('script');
-  script.src = 'https://maps.googleapis.com/maps/api/js?key=' + GOOGLE_MAPS_API_KEY + '&libraries=places&callback=onGoogleMapsLoaded';
-  script.async = true;
-  document.head.appendChild(script);
+// ---- Kostenlose Adresssuche über OpenStreetMap (Nominatim) ----
+// Kein API-Key, kein Google-Konto nötig.
+async function searchAddress(query){
+  if(query.trim().length < 3) return [];
+  const url = 'https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&addressdetails=0&limit=5&q=' + encodeURIComponent(query);
+  try{
+    const res = await fetch(url, { headers: { 'Accept-Language': 'de' } });
+    return await res.json();
+  }catch(err){
+    console.error('Adresssuche fehlgeschlagen', err);
+    return [];
+  }
 }
 
-function onGoogleMapsLoaded(){
-  // Autocomplete für die Suchleiste
-  const searchInput = document.getElementById('locationSearch');
-  const searchAutocomplete = new google.maps.places.Autocomplete(searchInput, {
-    componentRestrictions: { country: 'de' },
-    fields: ['geometry', 'formatted_address', 'name']
-  });
-  searchAutocomplete.addListener('place_changed', () => {
-    const place = searchAutocomplete.getPlace();
-    if(place.geometry){
-      searchLocation = {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng()
-      };
-      renderListings();
-    }
+function setupAddressAutocomplete(inputId, listId, onSelect){
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  let debounceTimer;
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const query = input.value;
+    debounceTimer = setTimeout(async () => {
+      const results = await searchAddress(query);
+      if(results.length === 0){ list.style.display = 'none'; list.innerHTML=''; return; }
+      list.innerHTML = results.map((r, i) => `<div class="autocomplete-item" data-i="${i}">${r.display_name}</div>`).join('');
+      list.style.display = 'block';
+      list.querySelectorAll('.autocomplete-item').forEach((el, i) => {
+        el.addEventListener('click', () => {
+          input.value = results[i].display_name;
+          list.style.display = 'none';
+          onSelect({ lat: parseFloat(results[i].lat), lng: parseFloat(results[i].lon), label: results[i].display_name });
+        });
+      });
+    }, 500); // Nominatim bittet um max. 1 Anfrage/Sekunde
   });
 
-  // Autocomplete für das Eintragen-Formular (nur zur Koordinaten-Ermittlung)
+  document.addEventListener('click', (e) => {
+    if(e.target !== input) list.style.display = 'none';
+  });
+}
+
+function initAutocompletes(){
+  setupAddressAutocomplete('locationSearch', 'locationSearchList', (place) => {
+    searchLocation = { lat: place.lat, lng: place.lng };
+    renderListings();
+  });
+
   const addressInput = document.getElementById('f-address');
   if(addressInput){
-    const formAutocomplete = new google.maps.places.Autocomplete(addressInput, {
-      componentRestrictions: { country: 'de' },
-      fields: ['geometry', 'formatted_address']
-    });
-    formAutocomplete.addListener('place_changed', () => {
-      const place = formAutocomplete.getPlace();
-      if(place.geometry){
-        document.getElementById('f-lat').value = place.geometry.location.lat();
-        document.getElementById('f-lng').value = place.geometry.location.lng();
-      }
+    setupAddressAutocomplete('f-address', 'f-addressList', (place) => {
+      document.getElementById('f-lat').value = place.lat;
+      document.getElementById('f-lng').value = place.lng;
     });
   }
-
-  initResultsMap();
-  renderListings();
 }
 
 function initResultsMap(){
-  resultsMap = new google.maps.Map(document.getElementById('resultsMap'), {
-    center: { lat: 51.1657, lng: 10.4515 }, // Mitte Deutschlands
-    zoom: 6,
-    mapId: 'PARKNAH_MAP'
-  });
+  resultsMap = L.map('resultsMap').setView([51.1657, 10.4515], 6); // Mitte Deutschlands
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>-Mitwirkende',
+    maxZoom: 19
+  }).addTo(resultsMap);
 }
 
 // Entfernung in km zwischen zwei Koordinaten (Haversine-Formel)
@@ -869,30 +902,21 @@ async function renderListings(){
 
 function updateMapMarkers(list){
   if(!resultsMap) return;
-  mapMarkers.forEach(m => m.setMap(null));
+  mapMarkers.forEach(m => resultsMap.removeLayer(m));
   mapMarkers = [];
 
-  const bounds = new google.maps.LatLngBounds();
-  let hasPoints = false;
+  const points = [];
 
   list.forEach(l => {
     if(!l.lat || !l.lng) return;
-    const marker = new google.maps.Marker({
-      position: { lat: l.lat, lng: l.lng },
-      map: resultsMap,
-      title: l.location
-    });
-    const info = new google.maps.InfoWindow({
-      content: `<strong>${escapeHtml(l.location)}</strong><br>${l.price} € / Tag`
-    });
-    marker.addListener('click', () => info.open(resultsMap, marker));
+    const marker = L.marker([l.lat, l.lng]).addTo(resultsMap);
+    marker.bindPopup(`<strong>${escapeHtml(l.location)}</strong><br>${l.price} € / Tag`);
     mapMarkers.push(marker);
-    bounds.extend(marker.getPosition());
-    hasPoints = true;
+    points.push([l.lat, l.lng]);
   });
 
-  if(hasPoints){
-    resultsMap.fitBounds(bounds);
+  if(points.length > 0){
+    resultsMap.fitBounds(points, { padding: [30, 30], maxZoom: 13 });
   }
 }
 
@@ -1051,7 +1075,8 @@ async function submitListing(e){
 
 (async function init(){
   toggleAvailabilityFields();
-  loadGoogleMapsScript();
+  initAutocompletes();
+  initResultsMap();
   allListings = await loadListings();
   renderListings();
 
