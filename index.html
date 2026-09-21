@@ -652,9 +652,25 @@
     <form id="authForm" onsubmit="return submitAuth(event)">
       <div class="field"><label for="auth-email">E-Mail-Adresse</label><input id="auth-email" type="email" required></div>
       <div class="field"><label for="auth-password">Passwort</label><input id="auth-password" type="password" required minlength="6"></div>
-      <div class="checkbox-field" id="authTermsField" style="display:none;">
-        <input type="checkbox" id="auth-terms">
-        <label for="auth-terms">Ich stimme den <a onclick="openModal('nutzungsbedingungen')" style="color:var(--petrol);font-weight:600;cursor:pointer;">Nutzungsbedingungen</a> zu.</label>
+      <div class="checkbox-field" id="authTermsField" style="display:none;align-items:flex-start;gap:9px;">
+        <input type="checkbox" id="auth-terms" required style="margin-top:4px;">
+        <div style="font-size:13px;line-height:1.4;">
+          <label for="auth-terms">
+            Ich stimme den
+            <a href="#" onclick="event.preventDefault(); openModal('nutzungsbedingungen');"
+               style="color:var(--petrol);font-weight:700;text-decoration:underline;cursor:pointer;">
+              Nutzungsbedingungen
+            </a>
+            zu.
+          </label>
+          <div style="margin-top:5px;color:var(--ink-soft);">
+            Informationen zur Verarbeitung deiner personenbezogenen Daten findest du in unserer
+            <a href="#" onclick="event.preventDefault(); openModal('datenschutz');"
+               style="color:var(--petrol);font-weight:600;text-decoration:underline;cursor:pointer;">
+              Datenschutzerklärung
+            </a>.
+          </div>
+        </div>
       </div>
       <button type="submit" class="btn lime" style="width:100%;margin-top:6px;" id="authSubmitBtn">Anmelden</button>
       <div id="authMsg"></div>
@@ -709,6 +725,30 @@
       <p style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 20px;">Wir haben deine Anfrage erhalten und melden uns in der Testphase manuell bei dir.</p>
       <button class="btn" style="width:100%;" onclick="closeModal('interesseModal')">Alles klar</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="emailConfirmModal">
+  <div class="modal-box" style="max-width:420px;text-align:center;">
+    <button class="modal-close" onclick="closeModal('emailConfirmModal')" aria-label="Schließen">✕</button>
+    <div style="width:58px;height:58px;border-radius:50%;background:var(--petrol-soft);display:flex;align-items:center;justify-content:center;margin:4px auto 18px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M4 6.5h16v11H4z" stroke="#0A3D3A" stroke-width="1.8" stroke-linejoin="round"/>
+        <path d="m4.5 7 7.5 6 7.5-6" stroke="#0A3D3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <h2 style="font-family:'Montserrat',sans-serif;font-weight:800;color:var(--petrol);font-size:22px;margin:0 0 10px;">Fast geschafft!</h2>
+    <p style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 10px;">
+      Wir haben eine Bestätigungs-E-Mail an
+      <strong id="confirmationEmail" style="color:var(--ink);word-break:break-word;"></strong>
+      gesendet.
+    </p>
+    <p style="font-size:14.5px;color:var(--ink-soft);line-height:1.6;margin:0 0 18px;">
+      Bitte bestätige deine E-Mail-Adresse über den Link in der E-Mail. Erst danach kannst du dich bei Parknah anmelden und dein Benutzerkonto nutzen.
+    </p>
+    <button class="btn lime" style="width:100%;margin-top:2px;" onclick="resendConfirmationEmail()">Bestätigungs-E-Mail erneut senden</button>
+    <button class="btn" style="width:100%;margin-top:8px;" onclick="closeModal('emailConfirmModal')">Später bestätigen</button>
+    <div id="confirmationMsg"></div>
   </div>
 </div>
 
@@ -1164,7 +1204,7 @@ async function submitAuth(e){
   const password = document.getElementById('auth-password').value;
 
   if(authMode === 'signup' && !document.getElementById('auth-terms').checked){
-    msgEl.innerHTML = '<div class="form-msg err">Bitte stimme den Nutzungsbedingungen zu.</div>';
+    msgEl.innerHTML = '<div class="form-msg err">Bitte stimme den Nutzungsbedingungen zu, um ein Konto zu erstellen.</div>';
     return false;
   }
 
@@ -1173,7 +1213,49 @@ async function submitAuth(e){
     : await supabaseClient.auth.signUp({ email, password });
 
   if(error){
+    const errorText = error.message || '';
+    const isUnconfirmed = authMode === 'login' && (
+      errorText.toLowerCase().includes('email not confirmed') ||
+      errorText.toLowerCase().includes('email not verified')
+    );
+
+    if(isUnconfirmed){
+      document.getElementById('confirmationEmail').textContent = email;
+      document.getElementById('confirmationMsg').innerHTML = '';
+      closeModal('authModal');
+      openModal('emailConfirmModal');
+      return false;
+    }
+
     msgEl.innerHTML = '<div class="form-msg err">' + (authMode === 'login' ? 'Anmeldung fehlgeschlagen. E-Mail oder Passwort prüfen.' : 'Registrierung fehlgeschlagen: ' + error.message) + '</div>';
+    return false;
+  }
+
+  // Bei einer Registrierung wird das Konto erst nach Bestätigung der E-Mail aktiv genutzt.
+  if(authMode === 'signup'){
+    document.getElementById('confirmationEmail').textContent = email;
+    document.getElementById('confirmationMsg').innerHTML = '';
+
+    // Falls Supabase wider Erwarten bereits eine Session zurückgibt, sofort wieder abmelden.
+    // Die eigentliche Freischaltung erfolgt erst nach der E-Mail-Bestätigung.
+    if(data.session){
+      await supabaseClient.auth.signOut();
+    }
+
+    currentUser = null;
+    updateAccountLink();
+    closeModal('authModal');
+    openModal('emailConfirmModal');
+    return false;
+  }
+
+  // Auch bei der Anmeldung sicherstellen, dass die E-Mail bestätigt wurde.
+  if(data.user && !data.user.email_confirmed_at){
+    await supabaseClient.auth.signOut();
+    document.getElementById('confirmationEmail').textContent = email;
+    document.getElementById('confirmationMsg').innerHTML = '';
+    closeModal('authModal');
+    openModal('emailConfirmModal');
     return false;
   }
 
@@ -1182,6 +1264,28 @@ async function submitAuth(e){
   closeModal('authModal');
   if(authOnSuccess) authOnSuccess();
   return false;
+}
+
+async function resendConfirmationEmail(){
+  const email = document.getElementById('confirmationEmail').textContent.trim();
+  const msgEl = document.getElementById('confirmationMsg');
+
+  if(!email){
+    msgEl.innerHTML = '<div class="form-msg err">Bitte gib deine E-Mail-Adresse erneut ein.</div>';
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email
+  });
+
+  if(error){
+    msgEl.innerHTML = '<div class="form-msg err">Die E-Mail konnte gerade nicht erneut gesendet werden. Bitte versuch es später noch einmal.</div>';
+    return;
+  }
+
+  msgEl.innerHTML = '<div class="form-msg ok">Wir haben die Bestätigungs-E-Mail erneut gesendet.</div>';
 }
 
 // ---- Buchungsanfragen ----
